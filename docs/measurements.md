@@ -5,18 +5,21 @@ second, then each state measured off the frames: silhouettes by sub-pixel ray
 casting, eyes by capsule fitting (PCA), colours and stroke widths by direct
 sampling.
 
-**The numeric constants of the bot are measurements, not settings.** Gaze angles,
-eye sizes, radii, timings, colours: all of it comes from frame-by-frame analysis.
-Rounding them off, simplifying them, or replacing them with values that look
-tidier breaks the resemblance, which is the only success criterion here.
+**The bot is now an original mascot built on bloub's engine, so the old rule has
+changed.** The measurements below still document the extracted behaviour and the
+traps worth keeping, but new curves and timings are **chosen**, not copied. The
+transition spring (`springOut`) and its retuned `morph` durations are the first of
+those: keep measured values where they still describe the look we want, and don't
+re-derive new animation behaviour from the reference video.
 
 ## Verified traps, not to be "corrected"
 
 - The eyes lean like `\\`, not `//`.
 - The body is a **perfect circle**, not a squircle, radial deviation under 0.7%.
-- Transitions are **exponential ease-outs**; the body **never** overshoots. The
-  one spring is local and written into the state concerned (the notification
-  pastille's +14% pop). There is deliberately no spring engine.
+- Transitions are **closed-form springs**, not exponential ease-outs: `springOut`
+  overshoots the pose by ~0.8 %, and `BODY_SPRING` adds a bounded (under 4 %)
+  radial puff/squash. This is a choice, not a measurement. The notification
+  pastille's +14 % pop remains a local effect written into the state concerned.
 - The vertical `!` has a **tapered** bar (top/bottom = 1.76); the leaning `!` has a
   **capsule** bar. They are not the same shape.
 - The leaning `!`'s dot is a **teardrop**, round end towards the bar, point away,

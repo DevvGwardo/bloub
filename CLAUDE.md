@@ -76,9 +76,16 @@ Details and the reasoning behind each are in [docs/](docs/):
   freezes **only** when a fade is in progress: doing it always would halt the outgoing
   state's own animation for the whole fade. Spaced playback is byte-identical, and a test
   locks both halves.
-- **Transitions are exponential ease-outs and the body never overshoots.** The one
-  spring is the notification pop (`NOTIF_POP = 1.14`). There is deliberately no
-  spring engine. A new bouncing effect belongs in the state that needs it.
+- **Transitions are closed-form springs, not integrators.** `springOut` (`math.ts`) is a
+  damped oscillator written as one expression in normalized time, so `sample(t)` stays a
+  pure function: no velocity carried between frames. `BODY_SPRING` (`engine.ts`) adds a
+  small radial bounce on top — 2.2 % puff plus a 1.1 % `cos(2θ)` squash, enveloped so it is
+  zero at both ends. Peak rendered body excursion stays under 4 %. It multiplies the
+  **radii**, not `sx`/`sy`, because the eyes are re-anchored to the outline by
+  `radiusAtAngle`: they follow the bounce instead of being left behind, which is what keeps
+  the eyefit guarantee. The notification pop (`NOTIF_POP = 1.14`) is still a local effect;
+  a new bouncing effect belongs in the state that needs it unless it is the transition
+  itself.
 - **Two sources of shapes, not to be mixed.** `profiles.ts` is generated from the
   video and drives the animated states; `skins.ts` holds the customiser's shapes,
   built analytically. A user's shape only replaces the body on `baseBody` states

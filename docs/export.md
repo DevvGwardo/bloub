@@ -196,7 +196,7 @@ frozen: every state change would register at t=0 and the cross-fades at block jo
 be wrong. Hence `rendAt(t)` on `BloubBot`: it resolves the block with `blockAt` and calls
 `setState` with the block's **absolute** offset, reproducing `tick()` without a clock. Proven
 by measurement: across a joint the silhouette moves 17.6 → 7.0 → 2.1 → 0.36 → 0.02 over
-~0.3 s, the decay of an exponential ease-out. A broken morph would show one single jump.
+~0.3 s, the settle of the transition spring. A broken morph would show one single jump.
 
 **Frames are never accumulated.** A thirty-second cycle is 624 frames, 255 MB of raw pixels
 if kept. The MP4 path streams frame-by-frame into the encoder (awaiting each `add` is what

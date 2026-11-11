@@ -108,9 +108,9 @@ export type GazeScript = (t: number) => Look
  * `spin` fond, ce qui fait passer les yeux DERRIERE la boule avant de les
  * ramener exactement la ou l'expression choisie les met.
  *
- * Ease-in-OUT et non l'ease-out exponentiel du reste du projet : ce n'est pas une
- * valeur qui se pose, c'est un objet qui tourne. En ease-out, les deux tiers du
- * tour etaient avales en 0,3 s — un a-coup, pas une rotation.
+ * Ease-in-OUT et non le ressort des transitions d'etat : ce n'est pas une valeur
+ * qui se pose, c'est un objet qui tourne. En ease-out, les deux tiers du tour
+ * etaient avales en 0,3 s — un a-coup, pas une rotation.
  *
  * Il est VIF au passage du limbe — 20 px entre deux images sur une boule de 100
  * de rayon — et ce n'est pas un defaut de reglage : pres du bord, un petit angle

@@ -44,9 +44,12 @@ Two URLs are worth knowing:
 
 ## Why the numbers look arbitrary
 
-They're measured, not chosen. The reference video was cut at 10 fps and each
-state measured off the frames: silhouettes by sub-pixel ray casting, eyes by
+Most of them were measured, not chosen. The reference video was cut at 10 fps and
+each state measured off the frames: silhouettes by sub-pixel ray casting, eyes by
 capsule fitting, colours and stroke widths by direct sampling.
+
+The transition spring is the deliberate exception: it is authored, not extracted
+(see [docs/architecture.md](docs/architecture.md)).
 
 So the constants in the code are **measurements**, and rounding them to friendlier
 values breaks the resemblance, which is the only thing this project is trying to
@@ -57,7 +60,7 @@ correct anything:
 |---|---|
 | The eyes lean `//` | They lean `\\`, around 26° off vertical |
 | The body is a squircle | It's a perfect circle, radial deviation under 0.7% |
-| Transitions are springs | Exponential ease-outs; the body never overshoots |
+| Transitions are springs | They are now, by choice: closed-form, ≤4 % body bounce |
 | The comet crosses the screen | The dot stays put, the trail orbits it |
 | The avatar floats at rest | It doesn't. The life is gaze drift and blinking |
 

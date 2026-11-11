@@ -11,15 +11,15 @@ Four different entrances were written and compared side by side before one was
 kept. Any state other than `idle` brings **its own gaze pose**, hence an eye jump
 at the change. And the blink meant to hide that isn't enough: it lasts **0.2 s**
 where the entry fade lasts **0.3**: the eyes reopen part-way through and it reads
-as a teleport (15 px between two frames, measured). Both durations are measured off
-the video and neither gets extended. A wink was tried at length here, then dropped
-for exactly this.
+as a teleport (15 px between two frames, measured). The blink is measured, the
+entry fade is ours; neither gets extended. A wink was tried at length here, then
+dropped for exactly this.
 
 ## So the whole entrance lives in the gaze script
 
 Not in a chain of states. It's the only mechanism in the project whose duration
 **we choose** (`setLook(look, now, morph)`), and therefore the only one that allows
-a slow eye movement. A state fade lasts what the video measured.
+a slow eye movement. A state fade lasts the few tenths we tune for it.
 
 ## The ball is ROUND for the duration of the turn
 

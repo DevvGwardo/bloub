@@ -38,7 +38,7 @@ break every measured duration at once.
 
 Hence two floors:
 
-- `MIN_BLOCK`, **derived** from the longest `morph` in the catalogue (`orbit`, 0.6 s),
+- `MIN_BLOCK`, **derived** from the longest `morph` in the catalogue (`orbit`, 0.52 s),
   not written by hand — it used to be, and it only worked because 0.6 happened to be
   that maximum.
   It no longer exists to prevent a jump: a state change landing *inside* a fade now
@@ -114,7 +114,8 @@ frame.
 The rest of the engine does not work that way: poses are **declared** and it only
 interpolates them along known curves. A tabulated offset fits that mould, and the engine
 reads the table on the **boundaries** of each morph — `shapePrev`/`shape`,
-`exprPrev`/`expr`, `prev`/`cur` — then interpolates with that morph's own `easeOutQuint`.
+`exprPrev`/`expr`, `prev`/`cur` — then interpolates with that morph's own curve
+(`easeOutQuint` for shape and expression changes, `springOut` for state transitions).
 Never on the interpolated value: during a shape morph `shapeAtTime` allocates a fresh array
 with no identity, and `blendExpression` already carries the target's id, so neither exists
 in any table. Feeding those to the solver is exactly what made the eyes tremble.
@@ -179,12 +180,28 @@ The rings are 3D circles in orthographic projection: the `z` component splits ea
 arc in two, and the back half is drawn *before* the body so the body occludes it.
 That depth sort is what makes them read as orbits rather than as flat drawing.
 
-## Springs are local and deliberate
+## Transitions are closed-form springs
 
-Transitions are exponential ease-outs (the curve measured on the video) and the
-body never overshoots. The one spring effect is the notification pastille's pop
-(`NOTIF_POP = 1.14`). There is deliberately **no spring engine** in the project;
-a new bouncing effect belongs in the state that needs it.
+A state transition follows `springOut` (`math.ts`): a damped oscillator written in
+closed form, a function of normalized time and nothing else. `sample(t)` therefore
+stays pure and replayable — there is no integrator and no velocity carried between
+frames. The damping is just under 1 (about 0.8 % on the pose blend) and an initial
+velocity keeps the start from feeling soft.
+
+The body adds `BODY_SPRING` (`engine.ts`): a 2.2 % radial puff plus a 1.1 %
+`cos(2θ)` squash, enveloped by a half sine squared that is exactly zero at both
+ends. Peak excursion of the rendered body stays under 4 %. It multiplies the
+**radii**, not `sx`/`sy`, because the eyes are re-anchored to the outline by
+`radiusAtAngle`: they follow the bounce rather than being left behind. The
+envelope vanishing at both ends is what makes the handover to the frozen pose and
+to the target pose exact. `engine.test.ts` measures the bound on the rendered
+footprint and checks the instant of a mid-fade change is byte-identical;
+`skins.test.ts` sweeps state changes and custom shapes to verify that no eye leaves
+the silhouette.
+
+The notification pastille's pop (`NOTIF_POP = 1.14`) is still a local effect
+written into the state that needs it. A new bouncing effect still belongs there,
+unless it is the transition itself.
 
 ## The rest expression is adjustable, the states' silhouettes are not
 
