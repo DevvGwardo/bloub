@@ -3,11 +3,11 @@ import { TAU, clamp, createRng, r2 } from './math'
 /* ------------------------------------------------------------------ couleurs */
 
 /**
- * Les anneaux ne sont pas des couleurs plates : la video montre une roue de
- * teintes complete a luminosite constante, avec un degrade le long de chaque
- * trace. Mesure : S 45-62 %, L 50-67 %.
+ * Les anneaux sont une roue de teintes complete a luminosite constante, avec un
+ * degrade le long de chaque trace. Saturation et luminosite choisies pour rester
+ * lisibles sur fond clair comme sur fond sombre.
  */
-function wheel(hue: number, s = 0.55, l = 0.62): string {
+function wheel(hue: number, s = 0.6, l = 0.58): string {
   const h = ((hue % 360) + 360) % 360
   const c = (1 - Math.abs(2 * l - 1)) * s
   const x = c * (1 - Math.abs(((h / 60) % 2) - 1))
@@ -84,7 +84,7 @@ export interface ArcRender {
 export interface ArcSeed {
   /** demi-grand axe, en unites de rayon de boule */
   a: number
-  /** aplatissement b/a : mesure <= 0.45, les plans d'orbite sont vus par la tranche */
+  /** aplatissement b/a : les plans d'orbite sont vus par la tranche */
   k: number
   /** inclinaison du grand axe a l'ecran, radians */
   tilt: number
@@ -162,26 +162,27 @@ export function arcRender(seed: ArcSeed, t: number, scale: number, id: string, o
 const RING_RNG = createRng(0xa11ce)
 
 /**
- * 6 anneaux, demi-grand axe 1.30-1.40 (donc nettement plus grands que la
- * boule), aplatissement toujours <= 0.45, epaisseur 0.055, ~3.3 tours/s.
+ * 6 anneaux, demi-grand axe 1.26-1.38 (donc plus grands que le chat),
+ * aplatissement modere, epaisseur 0.05, ~3 tours/s. Les parametres sont
+ * choisis pour donner une trajectoire ample et lisible autour de la tete.
  */
 export const RINGS: ArcSeed[] = Array.from({ length: 6 }, (_, i) => ({
-  a: 1.3 + RING_RNG() * 0.1,
-  k: 0.05 + RING_RNG() * 0.4,
+  a: 1.26 + RING_RNG() * 0.12,
+  k: 0.06 + RING_RNG() * 0.38,
   tilt: (i / 6) * Math.PI + RING_RNG() * 0.5,
-  speed: 3 + RING_RNG() * 0.7,
+  speed: 2.8 + RING_RNG() * 0.8,
   phase: RING_RNG() * TAU,
-  sweep: 0.6 + RING_RNG() * 0.25,
+  sweep: 0.58 + RING_RNG() * 0.26,
   hue: (i * 360) / 6 + RING_RNG() * 30,
   hueSpan: 60 + RING_RNG() * 60,
   width: 0.05 + RING_RNG() * 0.012,
   cx: 0,
-  cy: 0.1
+  cy: 0.08
 }))
 
 /**
- * Bouquet d'arcs emboites qui balaie le triangle juste avant les orbites.
- * Vus quasiment par la tranche (d'ou la forme en epingle a cheveux), rmax 1.37.
+ * Bouquet d'arcs emboites qui accompagne le coup de patte de `swat`.
+ * Vus presque par la tranche, d'ou la forme en epingle a cheveux.
  */
 export const SWOOSH: ArcSeed[] = Array.from({ length: 4 }, (_, i) => ({
   a: 0.78 + i * 0.2,
@@ -197,12 +198,18 @@ export const SWOOSH: ArcSeed[] = Array.from({ length: 4 }, (_, i) => ({
   cy: -0.12
 }))
 
-/* ------------------------------------------------------------- 3 points */
+/* ------------------------------------------------------------- 3 idees */
 
-/** x mesures : -0.557 / -0.013 / +0.532, y = 0. */
-export const DOT_X = [-0.557, -0.013, 0.532] as const
-export const DOT_R = 0.165
-export const DOT_PEAK = 1.25
+/**
+ * Les trois points de `thinking` : au-dessus de l'oreille droite, du plus pres
+ * au plus loin. Ils ne sont pas poses sur le contour, donc le moteur les prend
+ * tels quels, en unites de rayon de boule.
+ */
+export const THOUGHT_DOTS = [
+  { x: 0.74, y: -0.6, r: 0.045 },
+  { x: 0.95, y: -0.76, r: 0.055 },
+  { x: 1.13, y: -0.85, r: 0.04 }
+] as const
 
 /* ------------------------------------------------------------ particules */
 
@@ -238,23 +245,23 @@ export function particles(t: number, scale: number): DotRender[] {
   return out
 }
 
-/* ------------------------------------------------------------------ comete */
+/* ---------------------------------------------------------- trainee du bond */
 
 /**
- * Contrairement a l'intuition, le point ne traverse pas l'ecran : il reste au
- * centre et c'est la trainee qui l'orbite. Ellipse a = 0.85, b = 0.15,
- * grand axe incline de +34deg, 4 rubans, ~210 deg/s.
+ * La trainee du bond : quatre rubans qui tourbillonnent derriere le chat. Le
+ * chat, lui, se ramasse au centre ; c'est la trainee qui donne la vitesse.
+ * Ellipse a = 0.9, b = 0.17, grand axe incline de +32deg, ~200 deg/s.
  */
 const COMET_RNG = createRng(0xc0e7)
 export const COMET_RIBBONS: ArcSeed[] = Array.from({ length: 4 }, (_, i) => {
   const d = i - 1.5
   return {
-    a: 0.85 * (1 + d * 0.03),
+    a: 0.9 * (1 + d * 0.03),
     // meme aplatissement a +-5 % pres : les rubans forment un faisceau serre
-    k: (0.15 / 0.85) * (1 + d * 0.16),
-    tilt: (34 * Math.PI) / 180 + d * 0.035,
-    speed: 210 / 360,
-    // dephasage mesure : 10 a 20 degres entre rubans, pas davantage
+    k: (0.17 / 0.9) * (1 + d * 0.16),
+    tilt: (32 * Math.PI) / 180 + d * 0.035,
+    speed: 200 / 360,
+    // dephasage choisi : 10 a 20 degres entre rubans, pas davantage
     phase: -i * 0.045 + COMET_RNG() * 0.012,
     sweep: 0.34,
     hue: i * 85 + COMET_RNG() * 20,
@@ -265,21 +272,21 @@ export const COMET_RIBBONS: ArcSeed[] = Array.from({ length: 4 }, (_, i) => {
   }
 })
 
-/** Rayon du point de la comete, mesure a 0.129. */
-export const COMET_DOT = 0.129
+/** Echelle du chat ramasse pendant le bond. */
+export const COMET_DOT = 0.22
 
 /* --------------------------------------------------- pastille notification */
 
-/** Bleu releve au pixel. */
-export const NOTIF_BLUE = '#2496e8'
-/** La pastille est posee exactement sur la circonference, a -42deg. */
-export const NOTIF_ANGLE = -42
-export const NOTIF_DIST = 1.003
+/** Bleu franc, choisi pour ressortir sur le pelage sombre comme sur le clair. */
+export const NOTIF_BLUE = '#2f8fe8'
+/** La pastille est posee sur le contour, a -44deg (haut droite). */
+export const NOTIF_ANGLE = -44
+export const NOTIF_DIST = 1
 /** Rayon au repos ; le pop culmine 14 % au-dessus. */
 export const NOTIF_R = 0.15
 export const NOTIF_POP = 1.14
 /**
  * L'encoche est un disque concentrique a la pastille, soustrait du corps.
- * La marge est constante (0.054 R) et suit l'echelle du corps.
+ * La marge est constante (0.05 R) et suit l'echelle du corps.
  */
-export const NOTIF_MARGIN = 0.054
+export const NOTIF_MARGIN = 0.05

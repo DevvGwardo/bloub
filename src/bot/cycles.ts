@@ -28,7 +28,7 @@ export interface Cycle {
  *
  * DERIVE du catalogue et non ecrit a la main. La valeur etait 0,6, ce qui marchait
  * uniquement parce que 0,6 se trouvait etre le plus long `morph` du catalogue — celui
- * d'`orbit`. Rien ne le garantissait : ajouter un etat qui morphe en 0,8 s aurait fait
+ * d'`chase`. Rien ne le garantissait : ajouter un etat qui morphe en 0,8 s aurait fait
  * trembler l'editeur sans qu'aucun test ne bronche. Maintenant le plancher suit.
  */
 export const MIN_BLOCK = Math.max(...STATES.map((s) => s.morph))
@@ -59,7 +59,7 @@ export const STEP = 0.1
 
 const DEFAULT_CYCLE_ID = 'defaut'
 
-/** Duree minimale d'un bloc : le plancher moteur, ou la mesure de l'etat. */
+/** Duree minimale d'un bloc : le plancher moteur, ou la duree propre de l'etat. */
 export function minDurationOf(state: StateId): number {
   return Math.max(MIN_BLOCK, STATE_BY_ID.get(state)?.minDuration ?? MIN_BLOCK)
 }
@@ -72,15 +72,15 @@ export function clampDuration(state: StateId, seconds: number): number {
 }
 
 export function makeBlock(state: StateId): Block {
-  // la duree de reference est celle relevee sur la video pour cet etat
+  // la duree de reference est celle declaree par l'etat
   return { state, duration: clampDuration(state, STATE_BY_ID.get(state)?.duration ?? 2) }
 }
 
 /**
- * Le montage releve sur la video : l'ordre de `SEQUENCE`, chaque etat tenu sa
- * duree mesuree. Il sert d'amorce au premier lancement, puis il appartient a
- * l'utilisateur — il s'edite et se stocke comme les autres. La reference, elle,
- * reste dans le code : vider le stockage la fait revenir.
+ * Le montage d'amorce : l'ordre de `SEQUENCE`, chaque pose tenue sa duree. Il
+ * sert au premier lancement, puis il appartient a l'utilisateur — il s'edite et
+ * se stocke comme les autres. La reference, elle, reste dans le code : vider le
+ * stockage la fait revenir.
  */
 export function defaultCycle(): Cycle {
   return {

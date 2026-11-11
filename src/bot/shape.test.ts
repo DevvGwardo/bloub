@@ -9,14 +9,14 @@ import { SHAPES } from './skins'
  * le corps — les yeux et la pastille de notification.
  *
  * Elle n'avait aucun test, alors que le moteur l'appelle en `atan2(y, x) - pose.sil.rot` et
- * qu'`orbit` pousse `rot` jusqu'a environ -30 rad : son argument sort donc largement de
+ * qu'`chase` pousse `rot` jusqu'a environ -25 rad : son argument sort donc largement de
  * `[0, 2*PI)`. Toute simplification de son double modulo decollerait les yeux de la
- * silhouette pendant l'orbite, soit exactement la panne que cette fonction existe pour
+ * silhouette pendant la poursuite, soit exactement la panne que cette fonction existe pour
  * eviter.
  */
 
-/** Un profil franchement non circulaire : sur un cercle, tout angle donnerait 1. */
-const TRIANGLE = silhouette('triangle').radii
+/** Un profil franchement non circulaire : la pose `tilt` du chat, dissymetrique. */
+const TRIANGLE = silhouette('tilt').radii
 
 describe('radiusAtAngle', () => {
   it('rend le rayon du profil, pas une constante', () => {
@@ -30,7 +30,7 @@ describe('radiusAtAngle', () => {
   })
 
   /**
-   * Le cas d'`orbit` : plusieurs tours dans le negatif. C'est ce que le double modulo de
+   * Le cas de `chase` : plusieurs tours dans le negatif. C'est ce que le double modulo de
    * `((x % 1) + 1) % 1` gere et qu'un modulo simple casse.
    */
   it('enroule sur plusieurs tours, dans les deux sens', () => {

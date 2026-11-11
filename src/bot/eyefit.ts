@@ -55,7 +55,7 @@ const R = 100
  * Il faut les couvrir, sinon la correction est juste sur la pose nominale et fausse une
  * seconde plus tard : 7 degres de lacet deplacent l'oeil d'une douzaine d'unites sur une
  * boule de rayon 100. C'est precisement ce qui faisait deborder `capsule` + `effraye`
- * alors qu'une mesure a un seul instant le declarait bon.
+ * alors qu'un test a un seul instant le declarait bon.
  */
 const DERIVE_YAW = 5.5 + 1.6
 const DERIVE_PITCH = 4.2 + 1.3
@@ -71,7 +71,7 @@ interface Visage {
 }
 
 /**
- * Une gelule prete a etre mesuree : le segment de son axe, et de quoi calculer le rayon
+ * Une gelule prete a etre evaluee : le segment de son axe, et de quoi calculer le rayon
  * a degager DANS UNE DIRECTION donnee.
  *
  * Une gelule est exactement un segment epaissi d'un disque de rayon `r`. Son image par la
@@ -101,7 +101,7 @@ interface Empreinte {
  *
  * Une gelule est exactement un segment epaissi d'un disque de rayon `r`. Son image par
  * la matrice tangente est donc un segment epaissi d'une ELLIPSE, et un disque du rayon
- * de son grand axe la couvre : d'ou la plus grande valeur singuliere. La mesure reste
+ * de son grand axe la couvre : d'ou la plus grande valeur singuliere. Le calcul reste
  * ainsi conservatrice au sens strict, une marge positive garantissant que la gelule est
  * dedans.
  *
@@ -338,7 +338,7 @@ function resous(epreuves: Epreuve[]): { x: number; y: number } {
  * paraissait plus sur — un decalage constant ne peut pas bouger quand l'expression change
  * — mais il est intenable : sur une capsule, `neutre` a les yeux hauts et demande a
  * descendre quand `effraye` les a bas et demande a monter. Aucune translation unique ne
- * satisfait les deux, et la mesure le confirme (4 debordements de 4,8 unites).
+ * satisfait les deux, et les tests le confirment (4 debordements de 4,8 unites).
  *
  * Une entree par expression n'est pas moins fluide pour autant : le moteur interpole
  * entre DEUX CONSTANTES, ce qui est monotone par construction. Ce qui tremblait, c'etait
@@ -403,8 +403,8 @@ const clef = (state: StateId, expr: string | null) => `${state}|${expr ?? ''}`
 /**
  * Table des decalages, batie a l'import : une entree par (forme, etat a corps de base,
  * expression). Seuls `idle` et `swirl` portent le visage de repos, donc seuls eux se
- * declinent par expression — les trois autres etats a corps de base ont un visage releve
- * sur la video et une seule entree.
+ * declinent par expression : les autres etats a corps de base ont leur propre
+ * visage et une seule entree.
  *
  * Clef par REFERENCE du tableau de rayons, ce qui est deja la convention du moteur : ses
  * gardes `radii === this.shape` et `expression === this.expr` reposent sur la meme
@@ -435,7 +435,7 @@ const DECALAGES = batir()
  *
  * Vaut zero des que la forme n'est pas au catalogue, ce qui couvre `null` et le cercle :
  * sur le cercle les deux profils sont le meme, donc la marge est deja celle exigee et la
- * descente sort au premier tour. La forme relevee sur la video ne bouge donc pas, sans
+ * descente sort au premier tour. La forme par defaut du chat ne bouge donc pas, sans
  * cas particulier.
  */
 export function decalageDesYeux(

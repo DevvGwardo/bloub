@@ -10,10 +10,10 @@ import { clamp, easings } from '@/bot/math'
  */
 
 /**
- * Angles en degres d'orientation de tete. CHOISIS, pas releves : la video de
- * reference ne montre aucun suivi de curseur. Assez amples pour se distinguer de
- * la derive au repos (±7deg de lacet, ±5,5 de tangage), assez retenus pour
- * qu'aucun oeil ne parte derriere le limbe de la sphere.
+ * Angles en degres d'orientation de tete. CHOISIS : aucune pose du catalogue ne
+ * commande de suivi de curseur. Assez amples pour se distinguer de la derive au
+ * repos (±7deg de lacet, ±5,5 de tangage), assez retenus pour qu'aucun oeil ne
+ * parte derriere le limbe de la sphere.
  */
 export const YAW_MAX = 16
 export const PITCH_MAX = 13
@@ -23,19 +23,20 @@ export const PITCH_MAX = 13
  * au-dessus de l'equateur, ce qui donne un bot attentif plutot qu'absent.
  *
  * C'est une valeur ABSOLUE, et c'est tout le point : en relatif, la hauteur des
- * yeux suivait celle de chaque expression, et comme « neutre » regarde a
- * +28,6deg quand les humeurs sont entre -9 et +9, les yeux tombaient d'un coup
- * au premier changement d'humeur.
+ * yeux suivait celle de chaque expression, et comme le repos regarde bas quand
+ * d'autres humeurs regardent haut, les yeux sautaient d'un coup au premier
+ * changement d'humeur.
  */
 export const PITCH = 10
 
 /**
- * Direction ou la tete se pose dans la vue des reglages : le bot cesse de regarder en haut a
- * droite (sa pose de repos) pour regarder a GAUCHE, du cote du panneau.
+ * Direction ou la tete se pose dans la vue des reglages : le chat cesse de
+ * regarder droit devant, legerement bas, pour regarder a GAUCHE, du cote du
+ * panneau.
  *
  * Ce n'est pas un miroir de l'image : les yeux font vraiment le tour de la
- * sphere, donc ils gardent leur inclinaison en `\\` et leur compression de
- * profondeur. Retourner l'image les aurait couches en `//`.
+ * sphere, donc ils gardent leur inclinaison et leur compression de profondeur.
+ * Retourner l'image les aurait couches de l'autre cote.
  */
 export const TURN = 26
 

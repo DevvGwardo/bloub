@@ -114,7 +114,7 @@ describe('changement d expression', () => {
 
   it('n applique l expression qu a l etat de repos', () => {
     const expr = EXPRESSION_BY_ID.get('effraye')!
-    // wink a son expression propre, relevee sur la video : elle doit survivre
+    // wink a sa propre expression : elle doit survivre
     const nu = new BotEngine(100, 'wink', cercle()).sample(1)
     const habille = new BotEngine(100, 'wink', cercle(), expr).sample(1)
     expect(habille.eyes[0]!.d).toBe(nu.eyes[0]!.d)

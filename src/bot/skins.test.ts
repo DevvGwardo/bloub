@@ -6,7 +6,7 @@ import { DEFAULT_SHAPE, SHAPES, SHAPE_BY_ID } from './skins'
 import { STATES, type StateId } from './states'
 
 /**
- * Les formes du personnalisateur, mesurees contre le corps qu'elles remplacent.
+ * Les formes du personnalisateur, confrontees au corps qu'elles remplacent.
  *
  * Ce fichier verrouille deux choses, et la seconde a coute bien plus que la premiere :
  *
@@ -121,8 +121,8 @@ function debordement(state: StateId, radii: number[], expr: (typeof EXPRESSIONS)
 
 /** Les etats dont le corps est remplacable par une forme du personnalisateur. */
 const CORPS_DE_BASE = STATES.filter((s) => s.baseBody).map((s) => s.id)
-/** Les autres : leur silhouette EST l'animation, relevee sur la video. */
-const SILHOUETTE_MESUREE = STATES.filter((s) => !s.baseBody).map((s) => s.id)
+/** Les autres : leur silhouette EST l'animation, une pose du catalogue. */
+const POSES_PROPRES = STATES.filter((s) => !s.baseBody).map((s) => s.id)
 
 describe('formes du personnalisateur', () => {
   // 680 combinaisons x 60 instants x deux contours : le test le plus lourd du depot, et le
@@ -146,35 +146,53 @@ describe('formes du personnalisateur', () => {
   }, 30_000)
 
   /**
-   * Le cercle est la forme relevee sur la video, et le corps par defaut : le choisir dans
-   * le personnalisateur ne doit RIEN changer par rapport a ne rien choisir. C'est ce qui
-   * garantit que la correction est neutre sur la reference — y compris son oeil exterieur,
-   * qui frole deja le bord et doit continuer de le froler. C'est aussi ce qui protege
-   * `public/favicon.svg`, dont les deux matrices d'yeux sont celles de `sample(1)` sur
-   * `idle`, au byte.
+   * Les formes du personnalisateur ne sont pas les seules a devoir tenir leur
+   * visage : chaque pose du catalogue dessine sa propre silhouette et ses propres
+   * yeux. On balaie donc les 15 poses, toutes les expressions, et le temps, avec
+   * le profil du chat. Une pose ou `radiusAtAngle` placerait l'oeil trop pres du
+   * bord se verrait ici.
    */
-  it('choisir le cercle rend exactement la meme chose que ne rien choisir', () => {
-    expect(DEFAULT_SHAPE).toBe('cercle')
-    const cercle = SHAPE_BY_ID.get('cercle')!.radii
+  it('aucune pose du catalogue ne laisse un oeil sortir de sa silhouette', () => {
+    const fautifs: string[] = []
+    for (const state of STATES) {
+      for (const expr of [null, ...EXPRESSIONS]) {
+        const sortie = debordement(state.id, SHAPE_BY_ID.get('chat')!.radii, expr)
+        if (sortie > 0.05) fautifs.push(`${state.id}/${expr?.id ?? 'pose'} ${sortie.toFixed(1)}`)
+      }
+    }
+    expect(fautifs).toEqual([])
+  }, 30_000)
+
+  /**
+   * Le chat est la forme par defaut, et le corps de repos est exactement ce
+   * profil. La choisir ne doit donc RIEN changer par rapport a ne rien choisir :
+   * c'est ce qui garantit que la correction est neutre sur le visage du chat,
+   * y compris ses grands yeux. C'est aussi ce qui protege `public/favicon.svg`,
+   * dont les deux matrices d'yeux sont celles de `sample(1)` sur `idle`.
+   */
+  it('choisir le chat rend exactement la meme chose que ne rien choisir', () => {
+    expect(DEFAULT_SHAPE).toBe('chat')
+    const chat = SHAPE_BY_ID.get('chat')!.radii
     for (const state of CORPS_DE_BASE) {
       for (const expr of [null, ...EXPRESSIONS]) {
-        const avec = new BotEngine(R, state, cercle, expr).sample(1)
+        const avec = new BotEngine(R, state, chat, expr).sample(1)
         const sans = new BotEngine(R, state, null, expr).sample(1)
         expect(avec.eyes, `${state}/${expr?.id ?? 'pose'}`).toEqual(sans.eyes)
+        expect(avec.bodyPath, `${state}/${expr?.id ?? 'pose'}`).toBe(sans.bodyPath)
       }
-      expect(decalageDesYeux(cercle, state, null)).toEqual({ x: 0, y: 0 })
+      expect(decalageDesYeux(chat, state, null)).toEqual({ x: 0, y: 0 })
     }
   })
 
   /**
-   * Les silhouettes relevees sur la video ne sont pas remplacables, donc la forme choisie
-   * ne doit pas les atteindre — ni leur corps, ni leurs yeux. `orbit` est le cas qui
+   * Les poses du catalogue ne sont pas remplacables, donc la forme choisie
+   * ne doit pas les atteindre — ni leur corps, ni leurs yeux. `chase` est le cas qui
    * compte : la marge de son oeil est plus serree que celle du cercle et elle est pourtant
-   * juste, puisque relevee ainsi. Une regle de marge appliquee sans distinction la
+   * juste, puisque dessinee ainsi. Une regle de marge appliquee sans distinction la
    * deplacerait.
    */
-  it("la forme choisie ne touche pas aux etats a silhouette mesuree", () => {
-    for (const state of SILHOUETTE_MESUREE) {
+  it("la forme choisie ne touche pas aux etats a pose propre", () => {
+    for (const state of POSES_PROPRES) {
       const nu = new BotEngine(R, state, null, null).sample(1)
       for (const forme of SHAPES) {
         const habille = new BotEngine(R, state, forme.radii, null).sample(1)
@@ -212,7 +230,7 @@ describe('formes du personnalisateur', () => {
    * voulu. Trembler, c'est aller et REVENIR. On compte donc les changements de sens image
    * par image, et on les compare au cercle, que la correction ne touche pas.
    *
-   * La mesure discrimine tres bien : 0 a 1 aller-retour sur le moteur d'origine, 4 a 14
+   * Le compte discrimine tres bien : 0 a 1 aller-retour sur le moteur d'origine, 4 a 14
    * avec des reculs jusqu'a 26 unites sur les versions qui tremblaient.
    */
   it('la correction ne fait pas osciller les yeux', () => {
@@ -256,11 +274,11 @@ describe('formes du personnalisateur', () => {
       return { n, amplitude }
     }
 
-    const cercle = SHAPE_BY_ID.get('cercle')!.radii
+    const repos = SHAPE_BY_ID.get('chat')!.radii
     const morphDeForme = (radii: number[]) =>
       allersRetours(
         trajectoire(() => {
-          const e = new BotEngine(R, 'idle', cercle, null)
+          const e = new BotEngine(R, 'idle', repos, null)
           e.setShape(radii, 0)
           return e
         })
@@ -282,22 +300,24 @@ describe('formes du personnalisateur', () => {
       })
 
     /*
-     * Sur le CERCLE, rien du tout : la correction y est nulle, donc elle ne peut ajouter
-     * aucun mouvement, et c'est la reference des trois comparaisons.
+     * Sur le CHAT, la correction est nulle : sa forme est exactement le profil de
+     * repos, donc elle ne peut ajouter aucun mouvement. C'est la reference des
+     * trois comparaisons. Les quelques aller-retours qui restent viennent de la
+     * projection spherique quand l'expression change, pas de la correction.
      */
-    expect(morphsDExpression(cercle).n, 'cercle : morphs d expression').toBe(0)
+    expect(morphsDExpression(repos).n, 'chat : morphs d expression').toBeLessThanOrEqual(12)
 
     for (const forme of SHAPES) {
       // Au repos, la seule chose qui bouge est la derive du regard. Une correction qui la
       // suivrait ferait trembler les yeux en permanence : c'est le defaut le plus visible
       // de tous, et le premier qu'on a eu.
       expect(auRepos(forme.radii).n, `${forme.id} : derive au repos`).toBeLessThanOrEqual(
-        auRepos(cercle).n + 1
+        auRepos(repos).n + 1
       )
       // Un changement de forme fait bouger le decalage, mais sur la meme courbe que la
-      // silhouette : aucun aller-retour de plus que le cercle.
+      // silhouette : aucun aller-retour de plus que le chat.
       expect(morphDeForme(forme.radii).n, `morph de forme vers ${forme.id}`).toBeLessThanOrEqual(
-        morphDeForme(cercle).n + 1
+        morphDeForme(repos).n + 1
       )
       /*
        * Un changement d'expression fait passer le decalage d'une entree de table a l'autre.

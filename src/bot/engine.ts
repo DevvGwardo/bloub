@@ -395,7 +395,7 @@ export class BotEngine {
    *
    * Le moteur ne garde qu'UNE case d'historique, donc un changement qui arrive pendant un
    * fondu remplacait l'origine du melange par la pose PLEINE de l'etat qu'on quittait, au
-   * lieu de l'image partiellement melangee qui etait a l'ecran. Mesure sur
+   * lieu de l'image partiellement melangee qui etait a l'ecran. Constat sur
    * `idle -> wide -> idle` a 100 ms : 35,9 px de saut contre 8,0 px de mouvement normal.
    *
    * On fige donc la pose composite courante et on melange depuis elle. Continu par
@@ -417,7 +417,9 @@ export class BotEngine {
     this.tPrev = this.tCur
     this.cur = id
     this.tCur = now
-    // Dans la video, chaque changement de forme est masque par un clignement.
+    // Chaque changement de forme est masque par un clignement, convention du
+    // projet : les oreilles et le corps se rearrangent pendant que les yeux sont
+    // fermes.
     if (STATE_BY_ID.get(id)?.blinkIn) this.blinkAt = now
   }
 
@@ -437,8 +439,9 @@ export class BotEngine {
     // plus. C'est l'optimisation qui parait innocente et qui casse tout.
     const origine = since < def.morph ? this.origine(now, shape, expr) : null
     if (origine) {
-      // Ease-out exponentiel : c'est la courbe mesuree sur la video. Le corps
-      // n'a pas d'overshoot (seuls la pastille et l'ouverture des yeux en ont).
+      // Ease-out exponentiel : c'est la courbe de toutes les transitions du
+      // projet. Le corps n'a pas d'overshoot (seuls la pastille et l'ouverture
+      // des yeux en ont).
       // Le ratio est borne : relire une date ANTERIEURE au changement d'etat
       // donnerait un ratio negatif, que l'ease-out extrapole — la silhouette
       // part alors trente fois trop loin.
@@ -469,8 +472,8 @@ export class BotEngine {
       // doit survivre a une tete tournee sans pointeur.
       yaw: lerp(pose.gaze.yaw, look.yaw, look.mix) + life.dYaw - look.spin,
       pitch: lerp(pose.gaze.pitch, look.pitch, look.mix) + life.dPitch,
-      // le roulis, lui, ne suit rien : la tete du bot est penchee de -13deg dans
-      // la video, et la faire rouler avec le curseur casse cette signature
+      // le roulis, lui, ne suit rien : la tete du chat a une petite inclinaison
+      // propre au repos, et la faire rouler avec le curseur casse cette signature
       roll: pose.gaze.roll + life.dRoll
     }
 

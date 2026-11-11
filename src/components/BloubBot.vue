@@ -40,7 +40,7 @@ const props = withDefaults(
     frozenAt?: number
     /**
      * Montage joue par le lecteur : une suite d'etats, chacun tenu la duree de
-     * son bloc. Par defaut, le cycle releve sur la video.
+     * son bloc. Par defaut, le cycle du catalogue.
      */
     cycle?: Block[]
     /**
@@ -61,7 +61,7 @@ const props = withDefaults(
     shape: DEFAULT_SHAPE,
     color: DEFAULT_COLOR,
     expression: DEFAULT_EXPRESSION,
-    paper: '#f9f9f9',
+    paper: '#f7f4ef',
     frozenAt: undefined,
     cycle: () => defaultCycle().blocks,
     follow: false,
@@ -88,7 +88,7 @@ const R = RAYON
 const VB = DEMI_VIEWBOX
 
 const shapeRadii = computed(() => SHAPE_BY_ID.get(props.shape)?.radii ?? null)
-const ink = computed(() => COLOR_BY_ID.get(props.color)?.hex ?? '#0a0a0c')
+const ink = computed(() => COLOR_BY_ID.get(props.color)?.hex ?? '#232136')
 const expression = computed(() => EXPRESSION_BY_ID.get(props.expression) ?? null)
 
 const engine = new BotEngine(R, state.value, shapeRadii.value, expression.value)
@@ -227,8 +227,8 @@ function release() {
  */
 function aim() {
   // Le regard ne se pilote que sur les etats a VISAGE DE REPOS. Ailleurs la pose
-  // du regard EST l'animation relevee — l'orbite, par laquelle s'ouvre la vue,
-  // fait deja filer les yeux autour de la sphere — et s'y superposer la
+  // du regard EST l'animation du catalogue — la poursuite, par laquelle s'ouvre
+  // la vue, fait deja filer les yeux autour de la sphere — et s'y superposer la
   // brouillerait.
   if (!STATE_BY_ID.get(state.value)?.baseFace) {
     release()
@@ -493,7 +493,7 @@ function dotAttrs(dot: BotFrame['dots'][number]) {
   >
     <defs>
       <!--
-        Les yeux sont de vrais trous perces dans le corps (comme sur x.ai), pas
+        Les yeux sont de vrais trous perces dans le corps, pas
         des formes blanches posees dessus : ils restent donc automatiquement
         rognes par la silhouette quand ils glissent vers le bord.
       -->

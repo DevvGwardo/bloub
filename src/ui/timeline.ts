@@ -12,7 +12,7 @@
 export const BASE_SCALE = 44
 
 /**
- * Bornes de la loupe : au plus petit, le montage releve sur la video tient
+ * Bornes de la loupe : au plus petit, le montage d'amorce tient
  * entier dans la piste ; au plus grand, une carte reste manipulable sans
  * devenir un mur.
  */

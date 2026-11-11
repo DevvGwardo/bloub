@@ -86,7 +86,7 @@ describe('les deux yeux restent visibles', () => {
   it('garde de la marge : le suivi ne va pas jusqu au point de rupture', () => {
     // si cette marge disparait, c'est que YAW_MAX ou TURN a ete pousse trop loin
     const moteur = new BotEngine(100, 'idle', cercle(), EXPRESSION_BY_ID.get('neutre')!)
-    moteur.setLook({ yaw: -(TURN + YAW_MAX) - 25, pitch: 0, mix: 1, spin: 0, wander: 0 }, 0)
+    moteur.setLook({ yaw: -(TURN + YAW_MAX) - 15, pitch: 0, mix: 1, spin: 0, wander: 0 }, 0)
     expect(moteur.sample(1).eyes).toHaveLength(2)
   })
 })

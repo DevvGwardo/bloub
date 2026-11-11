@@ -17,7 +17,7 @@ freezes the composite pose and blends from it, which is continuous however many 
 are chained.
 
 **Only when a fade is in progress.** Freezing on every change would stop the outgoing
-state's own animation dead for the whole fade — `alert`'s travelling "!" would halt
+state's own animation dead for the whole fade — `chase`'s spinning body would halt
 mid-course — and there is nothing to fix outside a fade, where the state being left *is*
 the displayed frame. Montage playback, whose blocks last at least the longest fade, never
 freezes anything and renders byte for byte what it did before: verified over 1921 frames
@@ -34,11 +34,11 @@ already went wrong once, on the shape morph, and there is a dedicated test for i
 `cycles.ts` stretches a block by letting the state run longer (looping states do
 extra turns, the others hold their final pose) and shortens it by cutting. It
 never multiplies local time by a speed factor, which would be tempting and would
-break every measured duration at once.
+break every authored duration at once.
 
 Hence two floors:
 
-- `MIN_BLOCK`, **derived** from the longest `morph` in the catalogue (`orbit`, 0.6 s),
+- `MIN_BLOCK`, **derived** from the longest `morph` in the catalogue (`chase`, 0.6 s),
   not written by hand — it used to be, and it only worked because 0.6 happened to be
   that maximum.
   It no longer exists to prevent a jump: a state change landing *inside* a fade now
@@ -60,11 +60,12 @@ if it isn't expressible as `r(theta)`.
 
 ## Two sources of shapes, not to be mixed
 
-`profiles.ts` is generated from the video and drives the animated states.
-`skins.ts` holds the customiser's shapes, built analytically. A shape the user
-picks only replaces the body on states flagged `baseBody`: `idle`, `wink`,
-`wide`, `notify` and `swirl`. Everywhere else the silhouette *is* the animation
-and must not be overwritten.
+`cat.ts` (published through `profiles.ts`) holds the cat's analytic profiles and
+drives the animated poses. `skins.ts` holds the customiser's shapes — the cat
+first, then alternatives — built the same analytic way. A shape the user
+picks only replaces the body on states flagged `baseBody`: `idle`, `thinking`,
+`wink`, `wide`, `notify` and `swirl`. Everywhere else the silhouette *is* the
+animation and must not be overwritten.
 
 ## The eyes are holes in a `<mask>`
 
@@ -73,7 +74,7 @@ silhouette when they slide towards the edge, with no cropping code. The
 notification pastille's notch uses the same mask.
 
 Because a hole shows whatever is drawn behind it, and the back half of the rings
-and the burst particles *are* drawn behind the body to be occluded by it, the body
+and the puff particles *are* drawn behind the body to be occluded by it, the body
 is backed by an opaque path in the page's `paper` colour. Without it, a ring
 passing behind the ball reappears inside the eyes.
 
@@ -134,7 +135,7 @@ function of time.
 
 ### What not to try again
 
-Each of these was written and measured, and each broke something visible:
+Each of these was written and tested, and each broke something visible:
 
 - **Bounding per eye.** The two eyes don't aim in the same direction, so they don't retreat
   by the same amount: the pair spreads, and a distorted face reads far worse than the
@@ -151,23 +152,23 @@ Each of these was written and measured, and each broke something visible:
 - **One entry per shape, worst case over expressions.** Tempting, since a constant offset
   cannot move when the expression changes — but on a capsule `neutre` has its eyes high and
   needs to go down while `effraye` has them low and needs to go up. No single translation
-  satisfies both, measured: 4 combinations still overflowing.
+  satisfies both, tested: 4 combinations still overflowing.
 - **Giving up when nothing fits.** `wide` has 87-unit gélules and `notify` 50-unit ones; on
   a triangle or a teardrop they overflow whatever you do, and "no worse than the circle" is
   then satisfied degenerately. The rule is to aim for the least bad, never to leave a real
   overflow unimproved.
 
-The margin aimed for is the one the **original profile** gave, not clearance: on the circle
-the outer eye already grazes the edge and that is deliberate, it is what gives the volume.
-Aiming for clearance left the eye exactly tangent, which shows. On the circle both outlines
-are the same, so the offset is `0, 0` by construction and the reference does not move —
-which is also what protects `public/favicon.svg`.
+The margin aimed for is the one the **cat's own profile** gives, not clearance: on the cat
+the outer eye already sits close to the edge and that is deliberate, it is what gives the
+volume. Aiming for clearance left the eye exactly tangent, which shows. On the cat both
+outlines are the same, so the offset is `0, 0` by construction and the default cat does not
+move — which is also what protects `public/favicon.svg`.
 
-`src/bot/skins.test.ts` locks all of it. It measures back-and-forths frame by frame rather
+`src/bot/skins.test.ts` locks all of it. It counts back-and-forths frame by frame rather
 than speed — a morph moves the eyes fast anyway, trembling is going *and coming back* — it
 separates what would tremble permanently (resting drift, shape morph: no more than the
-circle) from a change of expression, and it sweeps **time as well as combinations**: one
-instant per combination is what let `capsule` + `frightened` through, since it was the
+cat) from a change of expression, and it sweeps **time as well as combinations**: one
+instant per combination is what let `capsule` + `effraye` through, since it was the
 resting drift that carried the eye over the edge.
 
 ## States declare `ArcSpec`, the engine rasterises
@@ -181,16 +182,16 @@ That depth sort is what makes them read as orbits rather than as flat drawing.
 
 ## Springs are local and deliberate
 
-Transitions are exponential ease-outs (the curve measured on the video) and the
+Transitions are exponential ease-outs (the project's curve) and the
 body never overshoots. The one spring effect is the notification pastille's pop
 (`NOTIF_POP = 1.14`). There is deliberately **no spring engine** in the project;
 a new bouncing effect belongs in the state that needs it.
 
-## The rest expression is adjustable, the states' silhouettes are not
+## The rest expression is adjustable, the catalogue poses keep their own face
 
-Among the catalogue states, only `idle` carries `baseFace: true`. The other states
-that show a face (wink, wide eyes, notification) have an expression measured off
-the video, and that is precisely what's being reproduced. (`swirl` also carries
+Among the catalogue states, only `idle` carries `baseFace: true`. The other
+states that show a face (wink, wide eyes, notification, loaf...) have their own
+expression, and that is precisely what the pose is about. (`swirl` also carries
 `baseFace`, for the reason below.)
 
 ## A tilt is only visible on an elongated eye
@@ -205,7 +206,7 @@ below that.
 ## Labels don't live in `src/bot/`
 
 The catalogues (`states.ts`, `skins.ts`, `expressions.ts`) carry **ids**, and the
-display resolves `t('states.orbit')`. The corollary is that their ids are
+display resolves `t('states.chase')`. The corollary is that their ids are
 **literal unions** (`ShapeId`, `ColorId`, `ExpressionId`, `StateId`), not for
 neatness, but because that is what makes the compiler check that every entry has
 its label in all three languages. Adding a shape without its label doesn't
@@ -215,10 +216,10 @@ There used to be one exception, `StateDef.hint`: a hardcoded French string per s
 nothing read. It is gone — a label in `src/bot/` contradicts the rule above, and this
 field would have gone out in a public type.
 
-## One state is not measured: `swirl`
+## One state is outside the catalogue: `swirl`
 
-It's the entry transition for the settings view, chosen rather than measured (like
-`--ink`). It sits deliberately **outside `SEQUENCE`** (so it appears in neither
+It's the entry transition for the settings view, chosen rather than part of the
+cat story (like `--ink`). It sits deliberately **outside `SEQUENCE`** (so it appears in neither
 the palette nor the board, and a test locks that) and carries both `baseBody` and
 `baseFace`, which is what lets it morph from the user's chosen shape towards the
 ball and lets gaze tracking apply from its very first frame.
@@ -256,6 +257,6 @@ callers being careful.
 
 ## Colours: two blacks that don't move together
 
-`--ink` (`styles.css`) is the **interface** colour, a night blue, chosen, not
-measured. The video's black is the bot's, in `skins.ts` (`encre`, `#0a0a0c`).
+`--ink` (`styles.css`) is the **interface** colour, a night blue, chosen. The
+cat's default fur is `encre` in `skins.ts` (`#232136`), also chosen.
 Retouching one doesn't touch the other.

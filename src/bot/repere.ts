@@ -15,7 +15,7 @@
  * passe a `BotEngine`.
  *
  * Choisi et non mesure : c'est l'unite de travail. Tout le reste du dossier s'exprime en
- * fractions de ce rayon, ce qui rend les mesures relevees sur la video independantes de la
+ * fractions de ce rayon, ce qui rend les proportions du chat independantes de la
  * taille d'affichage.
  */
 export const RAYON = 100

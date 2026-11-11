@@ -71,7 +71,7 @@ const muted = ref<ViewId | null>(null)
             pas les contours fins d'avant. Les traces sont recopies tels quels
             depuis les paquets Iconify — pour en changer, prendre le corps du
             `<symbol>` dans `@iconify-json/<paquet>`, pas le redessiner. Ce sont
-            les seules formes du projet qui ne sont PAS relevees sur la video.
+            les seules formes du projet qui ne sont pas dessinees par le moteur.
 
             Animations : le clap de Solar (`solar:clapperboard-play-bold`).
           -->
