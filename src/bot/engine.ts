@@ -78,9 +78,9 @@ const NO_LOOK: Look = { yaw: 0, pitch: 0, mix: 0, spin: 0, wander: 1 }
  * Rebond du corps pendant un fondu d'etat, en fraction de rayon.
  *
  * `puff` dilate le corps dans toutes les directions, `squash` ajoute une
- * modulation `cos(2 theta)` : le corps s'elargit legerement et s'aplatit
- * d'autant, ce qui se lit comme un atterrissage souple plutot que comme une
- * boule qui gonfle. La somme des deux (3,3 %) est le depassement maximal ; elle
+ * modulation `cos(2 theta)` : le corps s'elargit plus qu'il ne grandit, ce qui
+ * se lit comme un atterrissage souple plutot que comme une boule qui gonfle.
+ * La somme des deux (3,3 %) est le depassement maximal ; elle
  * reste sous les 4 % demandes, meme combinee au leger depassement du ressort de
  * pose.
  *

@@ -189,8 +189,9 @@ frames. The damping is just under 1 (about 0.8 % on the pose blend) and an initi
 velocity keeps the start from feeling soft.
 
 The body adds `BODY_SPRING` (`engine.ts`): a 2.2 % radial puff plus a 1.1 %
-`cos(2θ)` squash, enveloped by a half sine squared that is exactly zero at both
-ends. Peak excursion of the rendered body stays under 4 %. It multiplies the
+`cos(2θ)` differential (it widens more than it grows), enveloped by a half sine
+squared that is exactly zero at both ends. Peak excursion of the rendered body
+stays under 4 %. It multiplies the
 **radii**, not `sx`/`sy`, because the eyes are re-anchored to the outline by
 `radiusAtAngle`: they follow the bounce rather than being left behind. The
 envelope vanishing at both ends is what makes the handover to the frozen pose and
