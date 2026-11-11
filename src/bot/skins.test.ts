@@ -146,7 +146,25 @@ describe('formes du personnalisateur', () => {
   }, 30_000)
 
   /**
-   * La forme par defaut est le chat, et le corps de repos est exactement ce
+   * Les formes du personnalisateur ne sont pas les seules a devoir tenir leur
+   * visage : chaque pose du catalogue dessine sa propre silhouette et ses propres
+   * yeux. On balaie donc les 15 poses, toutes les expressions, et le temps, avec
+   * le profil du chat. Une pose ou `radiusAtAngle` placerait l'oeil trop pres du
+   * bord se verrait ici.
+   */
+  it('aucune pose du catalogue ne laisse un oeil sortir de sa silhouette', () => {
+    const fautifs: string[] = []
+    for (const state of STATES) {
+      for (const expr of [null, ...EXPRESSIONS]) {
+        const sortie = debordement(state.id, SHAPE_BY_ID.get('chat')!.radii, expr)
+        if (sortie > 0.05) fautifs.push(`${state.id}/${expr?.id ?? 'pose'} ${sortie.toFixed(1)}`)
+      }
+    }
+    expect(fautifs).toEqual([])
+  }, 30_000)
+
+  /**
+   * Le chat est la forme par defaut, et le corps de repos est exactement ce
    * profil. La choisir ne doit donc RIEN changer par rapport a ne rien choisir :
    * c'est ce qui garantit que la correction est neutre sur le visage du chat,
    * y compris ses grands yeux. C'est aussi ce qui protege `public/favicon.svg`,
