@@ -3,7 +3,7 @@ import { BotEngine, type RenderedEye } from './engine'
 import { decalageDesYeux, POUR_TESTS } from './eyefit'
 import { EXPRESSIONS } from './expressions'
 import { DEFAULT_SHAPE, SHAPES, SHAPE_BY_ID } from './skins'
-import { STATES, type StateId } from './states'
+import { STATE_BY_ID, STATES, type StateId } from './states'
 
 /**
  * Les formes du personnalisateur, mesurees contre le corps qu'elles remplacent.
@@ -103,11 +103,10 @@ const PAS = 1 / 20
  * `POSES[state]` que `capsule` + `effraye` est passe inapercu, alors qu'il sortait de
  * 4,4 unites une seconde plus tard.
  */
-function debordement(state: StateId, radii: number[], expr: (typeof EXPRESSIONS)[number] | null) {
-  const e = new BotEngine(R, state, radii, expr)
+function pireSur(e: BotEngine, dates: number[]) {
   let pire = 0
-  for (let i = 0; i < INSTANTS; i++) {
-    const f = e.sample(i * PAS)
+  for (const t of dates) {
+    const f = e.sample(t)
     const corps = contourDuCorps(f.bodyPath)
     for (const eye of f.eyes) {
       for (const p of contourDeLOeil(eye)) {
@@ -119,10 +118,34 @@ function debordement(state: StateId, radii: number[], expr: (typeof EXPRESSIONS)
   return pire
 }
 
+function debordement(state: StateId, radii: number[], expr: (typeof EXPRESSIONS)[number] | null) {
+  const e = new BotEngine(R, state, radii, expr)
+  return pireSur(
+    e,
+    Array.from({ length: INSTANTS }, (_, i) => i * PAS)
+  )
+}
+
+/** Meme mesure, mais pendant le fondu d'entree de `vers` : c'est la ou le corps rebondit. */
+function debordementEnFondu(depuis: StateId, vers: StateId, radii: number[]) {
+  const e = new BotEngine(R, depuis, radii, null)
+  e.setState(vers, 0)
+  const duree = STATE_BY_ID.get(vers)!.morph
+  return pireSur(
+    e,
+    Array.from({ length: INSTANTS }, (_, i) => (i / INSTANTS) * duree)
+  )
+}
+
 /** Les etats dont le corps est remplacable par une forme du personnalisateur. */
 const CORPS_DE_BASE = STATES.filter((s) => s.baseBody).map((s) => s.id)
 /** Les autres : leur silhouette EST l'animation, relevee sur la video. */
 const SILHOUETTE_MESUREE = STATES.filter((s) => !s.baseBody).map((s) => s.id)
+
+/** Les etats qui montrent un visage : eux seuls peuvent laisser un oeil deborder. */
+const A_VISAGE: StateId[] = ['idle', 'wink', 'wide', 'notify', 'egg', 'hexagon']
+/** Ceux dont le corps est remplacable : les seuls ou une forme choisie entre en jeu. */
+const A_VISAGE_BASE = A_VISAGE.filter((s) => CORPS_DE_BASE.includes(s))
 
 describe('formes du personnalisateur', () => {
   // 680 combinaisons x 60 instants x deux contours : le test le plus lourd du depot, et le
@@ -142,6 +165,40 @@ describe('formes du personnalisateur', () => {
     // Cinq couples etat x forme debordaient : `wide`+`capsule` de 14,5 unites sur une boule
     // de rayon 100, `wide`+`triangle` de 11,9, `idle`+`capsule` et `swirl`+`capsule` de 5,3,
     // `notify`+`goutte` de 3,3.
+    expect(fautifs).toEqual([])
+  }, 30_000)
+
+  /**
+   * Et pendant un fondu, ou le corps rebondit et ou les yeux suivent leur contour : le
+   * ressort dilate le corps, mais il ne doit jamais ouvrir la silhouette sous une gelule.
+   *
+   * Deux balayages : les etats a visage entre eux sur le corps releve, puis les formes du
+   * personnalisateur entre les etats dont le corps est remplacable. Les autres etats a
+   * visage (`egg`, `hexagon`) imposent leur propre silhouette, donc une forme choisie ne
+   * les atteint pas et le second balayage n'a rien a y faire.
+   */
+  it("aucun fondu d etat ne laisse un oeil sortir de la silhouette", () => {
+    const fautifs: string[] = []
+    const cercle = SHAPE_BY_ID.get('cercle')!.radii
+
+    for (const depuis of A_VISAGE) {
+      for (const vers of A_VISAGE) {
+        if (depuis === vers) continue
+        const sortie = debordementEnFondu(depuis, vers, cercle)
+        if (sortie > 0.05) fautifs.push(`${depuis}->${vers} ${sortie.toFixed(1)}`)
+      }
+    }
+
+    for (const forme of SHAPES) {
+      for (const depuis of A_VISAGE_BASE) {
+        for (const vers of A_VISAGE_BASE) {
+          if (depuis === vers) continue
+          const sortie = debordementEnFondu(depuis, vers, forme.radii)
+          if (sortie > 0.05) fautifs.push(`${forme.id}:${depuis}->${vers} ${sortie.toFixed(1)}`)
+        }
+      }
+    }
+
     expect(fautifs).toEqual([])
   }, 30_000)
 
