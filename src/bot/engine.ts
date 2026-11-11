@@ -151,6 +151,12 @@ export class BotEngine {
   private lookAt = -10
   /** duree de rattrapage en cours ; voir `LOOK_MORPH`, sa valeur par defaut */
   private lookMorph = 0.24
+  /**
+   * Mouvement reduit. Ce n'est pas une animation mais une PREFERENCE de rendu,
+   * donc elle s'applique d'un coup : elle ne change que l'amplitude de la vie au
+   * repos (respiration, derive), jamais la forme ni le rythme.
+   */
+  private calm = false
 
   /** duree du morph quand on change la forme du corps */
   static readonly SHAPE_MORPH = 0.45
@@ -227,6 +233,15 @@ export class BotEngine {
     const t = easings.easeOutQuint(clamp(k))
     // alloue seulement pendant le morph ; hors morph on rend le tableau tel quel
     return to.map((r, i) => lerp(from[i] ?? r, r, t))
+  }
+
+  /**
+   * Reglage « mouvement reduit ». Il ne touche qu'a l'amplitude de la vie au
+   * repos ; les clignements et le regard pilote restent intacts, sans quoi le
+   * bot cesserait de paraitre vivant plutot que de paraitre calme.
+   */
+  setCalm(calm: boolean) {
+    this.calm = calm
   }
 
   /**
@@ -463,7 +478,11 @@ export class BotEngine {
     // --- vie au repos -----------------------------------------------------
     const alive = pose.eyeAlpha > 0.01
     const look = this.lookAtTime(now)
-    const life = liveliness(now, { wander: alive ? look.wander : 0, blink: alive })
+    const life = liveliness(now, {
+      wander: alive ? look.wander : 0,
+      blink: alive,
+      calm: this.calm
+    })
 
     const gaze = {
       // Les deux visees REMPLACENT celles de la pose au lieu de s'y ajouter (voir

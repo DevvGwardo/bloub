@@ -1,5 +1,18 @@
 import { describe, expect, it } from 'vitest'
-import { EYE_H, EYE_SPLIT, EYE_W, REST_GAZE, eyePoses, type HeadGaze } from './face'
+import {
+  BLINK_DUR,
+  blinkLid,
+  blinkScale,
+  BREATH_AMPLITUDE,
+  BREATH_PERIOD,
+  EYE_H,
+  EYE_SPLIT,
+  EYE_W,
+  liveliness,
+  REST_GAZE,
+  eyePoses,
+  type HeadGaze
+} from './face'
 
 /**
  * Le visage du chat : deux grands ovales poses sur une sphere. Le modele est
@@ -80,5 +93,94 @@ describe('yeux poses sur une sphere', () => {
       const poses = eyePoses(gaze, 1)
       for (const p of poses) expect(p.depth).toBeGreaterThan(0.2)
     }
+  })
+})
+
+/** Premier instant ou la paupiere est franchement fermee, par balayage. */
+function firstClosure(from = 0, span = 20): number {
+  for (let t = from; t < from + span; t += 1 / 240) {
+    if (blinkLid(t) < 0.01) return t
+  }
+  throw new Error(`aucun clignement entre ${from} et ${from + span} s`)
+}
+
+describe('clignements', () => {
+  it('tire le meme calendrier a chaque lecture, dans n importe quel ordre', () => {
+    // La purete de `sample(t)` en depend : le calendrier est un hachage du
+    // numero de creneau, et non un generateur dont l'etat avance a chaque image.
+    const probes = [0.1, 1.37, 5.2, 12.7, 60.4, 151.9]
+    const avant = probes.map(blinkLid)
+    const arriere = [...probes].reverse().map(blinkLid).reverse()
+    expect(arriere).toEqual(avant)
+    for (const lid of avant) {
+      expect(lid).toBeGreaterThanOrEqual(0)
+      expect(lid).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('se repete a l identique quand on relit une date passee', () => {
+    const premiere = blinkLid(firstClosure() + 0.05)
+    // on lit loin devant, puis on revient : rien ne doit avoir bouge
+    for (let t = 0; t < 500; t += 7.3) blinkLid(t)
+    expect(blinkLid(firstClosure() + 0.05)).toBe(premiere)
+  })
+
+  it('ferme l oeil en un ecrasement bref, pas en un fondu de couleurs', () => {
+    const t = firstClosure()
+    // la paupiere atteint le bas du clignement...
+    expect(blinkLid(t)).toBeLessThan(0.01)
+    // ...et l'ecrasement vertical qui en decoule est presque total
+    expect(blinkScale(blinkLid(t))).toBeLessThan(0.1)
+    // ouvert, l'oeil reprend exactement sa taille
+    expect(blinkScale(1)).toBe(1)
+    // un clignement de chat tient en quelques images a 60 Hz
+    expect(BLINK_DUR).toBeGreaterThan(0.12)
+    expect(BLINK_DUR).toBeLessThan(0.25)
+  })
+
+  it('garde des intervalles irreguliers, avec des clignements doubles', () => {
+    const dt = 1 / 240
+    const debuts: number[] = []
+    let precedent = blinkLid(0)
+    for (let t = 0; t <= 60; t += dt) {
+      const lid = blinkLid(t)
+      if (precedent >= 0.2 && lid < 0.2) debuts.push(t)
+      precedent = lid
+    }
+    const ecarts = debuts.slice(1).map((t, i) => t - debuts[i]!)
+
+    // environ vingt clignements par minute, sans battement metronomique
+    expect(debuts.length).toBeGreaterThan(15)
+    expect(Math.max(...ecarts) - Math.min(...ecarts)).toBeGreaterThan(1.5)
+    expect(new Set(ecarts.map((e) => e.toFixed(2))).size).toBeGreaterThan(10)
+
+    // un double clignement : deux fermetures a moins d'une demi-seconde...
+    expect(ecarts.some((e) => e < 0.5)).toBe(true)
+    // ...et des pauses plus longues que la moyenne, tirees par un creneau vide
+    expect(ecarts.some((e) => e > 3)).toBe(true)
+  })
+
+  it('garde le clignement sous mouvement reduit', () => {
+    // Le reglage apaise l'amplitude, pas le rythme : retirer le clignement
+    // laisserait une image morte au lieu d'un mouvement calme.
+    const t = firstClosure()
+    expect(liveliness(t, { calm: true }).lid).toBeLessThan(0.01)
+    expect(liveliness(t, { calm: false }).lid).toBe(liveliness(t, { calm: true }).lid)
+  })
+})
+
+describe('respiration', () => {
+  it('fait un cycle de trois a quatre secondes, d environ 1,5 %', () => {
+    let min = Infinity
+    let max = -Infinity
+    for (let t = 0; t <= BREATH_PERIOD; t += BREATH_PERIOD / 400) {
+      const b = liveliness(t).breath
+      min = Math.min(min, b)
+      max = Math.max(max, b)
+    }
+    expect(BREATH_PERIOD).toBeGreaterThanOrEqual(3)
+    expect(BREATH_PERIOD).toBeLessThanOrEqual(4)
+    // amplitude crete : la moitie de l'ecart entre le plein et le vide
+    expect((max - min) / 2).toBeCloseTo(BREATH_AMPLITUDE, 4)
   })
 })

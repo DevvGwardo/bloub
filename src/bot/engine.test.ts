@@ -4,7 +4,14 @@ import { NOTIF_ANGLE } from './decor'
 import { PROFILES } from './profiles'
 import { radiusAtAngle } from './shape'
 import { EXPRESSION_BY_ID } from './expressions'
-import { REST_GAZE } from './face'
+import {
+  BLINK_DUR,
+  blinkLid,
+  BREATH_AMPLITUDE,
+  BREATH_PERIOD,
+  CALM_AMPLITUDE,
+  REST_GAZE
+} from './face'
 import { SHAPE_BY_ID } from './skins'
 import { SEQUENCE, STATES, type StateId } from './states'
 
@@ -131,6 +138,77 @@ describe('moteur', () => {
         }
       }
     }
+  })
+})
+
+/**
+ * La respiration est une propriete du CORPS, donc elle se mesure sur le chemin
+ * rendu et pas sur un coefficient interne : hauteur du contour, oreilles
+ * comprises, sur une boule de 100 de rayon.
+ */
+describe('respiration', () => {
+  const hauteur = (e: BotEngine, t: number) => footprint(e.sample(t).bodyPath).h
+
+  function amplitude(calm: boolean) {
+    const e = new BotEngine(100, 'idle')
+    e.setCalm(calm)
+    let min = Infinity
+    let max = -Infinity
+    for (let t = 0; t <= BREATH_PERIOD * 2; t += 0.01) {
+      const h = hauteur(e, t)
+      min = Math.min(min, h)
+      max = Math.max(max, h)
+    }
+    return (max - min) / 2 / ((max + min) / 2)
+  }
+
+  it('respire a environ 1,5 % sur un cycle de trois a quatre secondes', () => {
+    const a = amplitude(false)
+    expect(a).toBeGreaterThan(0.01)
+    expect(a).toBeLessThan(0.02)
+    expect(a).toBeCloseTo(BREATH_AMPLITUDE, 2)
+
+    // le cycle revient sur lui-meme : meme hauteur une periode plus tard, au
+    // centieme d'unite pres (les chemins sont arrondis a deux decimales)
+    const e = new BotEngine(100, 'idle')
+    expect(Math.abs(hauteur(e, 1) - hauteur(e, 1 + BREATH_PERIOD))).toBeLessThan(0.02)
+  })
+
+  it('baisse l amplitude sous mouvement reduit, sans l eteindre', () => {
+    const normal = amplitude(false)
+    const calme = amplitude(true)
+    expect(calme).toBeGreaterThan(0.001)
+    expect(calme).toBeLessThan(normal * 0.5)
+    // la meme respiration, a l'echelle d'amplitude annoncee
+    expect(calme / normal).toBeCloseTo(CALM_AMPLITUDE, 1)
+  })
+
+  it('ecrase la hauteur de l oeil, pas sa largeur, pendant un clignement', () => {
+    let ferme = -1
+    for (let t = 0; t < 20; t += 1 / 240) {
+      if (blinkLid(t) < 0.01) {
+        ferme = t
+        break
+      }
+    }
+    expect(ferme).toBeGreaterThanOrEqual(0)
+
+    const e = new BotEngine(100, 'idle')
+    /** Etendues du repere de l'oeil, sans les translations. */
+    const etendues = (t: number) => {
+      const n = /matrix\(([^)]+)\)/.exec(e.sample(t).eyes[0]!.matrix)![1]!.split(',').map(Number)
+      return {
+        x: Math.abs(n[0]!) + Math.abs(n[2]!),
+        y: Math.abs(n[1]!) + Math.abs(n[3]!)
+      }
+    }
+    const ouvert = etendues(ferme + BLINK_DUR)
+    const ferme_ = etendues(ferme)
+
+    // la paupiere est un ecrasement VERTICAL : la hauteur s'effondre...
+    expect(ferme_.y).toBeLessThan(ouvert.y * 0.2)
+    // ...la largeur, elle, ne bouge quasiment pas
+    expect(ferme_.x).toBeCloseTo(ouvert.x, 1)
   })
 })
 
