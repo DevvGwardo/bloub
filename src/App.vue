@@ -874,6 +874,7 @@ watch(
             :expression="humeur ?? expression"
             :follow="view === 'reglages'"
             :gaze="intro ? INTRO_GAZE : null"
+            :calm="calme"
           />
         </div>
 

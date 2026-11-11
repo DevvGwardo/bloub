@@ -4,7 +4,7 @@ import { NOTIF_BLUE } from '@/bot/decor'
 import { BotEngine, type BotFrame } from '@/bot/engine'
 import { clamp, easings } from '@/bot/math'
 import { t } from '@/i18n'
-import { lookTarget, TURN_TIME, type GazeScript } from '@/ui/gaze'
+import { AIM_RELAX, followAim, lookTarget, TURN_TIME, type GazeScript } from '@/ui/gaze'
 import {
   DEFAULT_EXPRESSION,
   EXPRESSION_BY_ID
@@ -55,6 +55,12 @@ const props = withDefaults(
      * ici c'est le script qui decide de tout, y compris de sa duree.
      */
     gaze?: GazeScript | null
+    /**
+     * Mouvement reduit demande par le systeme. Ne touche qu'a l'amplitude de la
+     * vie au repos : la respiration et la derive s'apaisent, le clignement
+     * continue.
+     */
+    calm?: boolean
   }>(),
   {
     size: 320,
@@ -65,7 +71,8 @@ const props = withDefaults(
     frozenAt: undefined,
     cycle: () => defaultCycle().blocks,
     follow: false,
-    gaze: null
+    gaze: null,
+    calm: false
   }
 )
 
@@ -92,6 +99,9 @@ const ink = computed(() => COLOR_BY_ID.get(props.color)?.hex ?? '#232136')
 const expression = computed(() => EXPRESSION_BY_ID.get(props.expression) ?? null)
 
 const engine = new BotEngine(R, state.value, shapeRadii.value, expression.value)
+// La preference est lue avant la premiere image : une vignette ne doit pas
+// respirer pleine amplitude puis se calmer d'un coup.
+engine.setCalm(props.calm)
 const frame = shallowRef<BotFrame>(engine.sample(props.frozenAt ?? 0))
 const uid = Math.random().toString(36).slice(2, 8)
 const maskId = `bot-mask-${uid}`
@@ -192,6 +202,12 @@ const svg = ref<SVGSVGElement | null>(null)
 
 /** Derniere position connue du pointeur, en coordonnees client. */
 let pointer: { x: number; y: number } | null = null
+/**
+ * Date d'horloge du dernier VRAI mouvement. C'est elle qui distingue un curseur
+ * pose d'un curseur qui vient de bouger : sans elle, le bot fixerait
+ * indefiniment une souris oubliee au bord de l'ecran.
+ */
+let lastMoveAt = 0
 /** true = une cible est posee sur le moteur, donc il y a de quoi relacher. */
 let aiming = false
 /** Date d'horloge a laquelle le demi-tour a commence. */
@@ -202,6 +218,7 @@ function onPointerMove(event: PointerEvent) {
   // regard fige sur le dernier point touche, ce qui se lit comme un bug.
   if (event.pointerType === 'touch') return
   pointer = { x: event.clientX, y: event.clientY }
+  lastMoveAt = clock
 }
 
 function onPointerLeave() {
@@ -247,14 +264,28 @@ function aim() {
   if (!aiming) turnSince = clock
   const demiLargeur = Math.max(1, window.innerWidth / 2)
   const demiHauteur = Math.max(1, window.innerHeight / 2)
+  /*
+   * `followAim` decide si le pointeur commande encore : immobilite prolongee ou
+   * sortie de la fenetre, et il rend une visee au centre avec la derive
+   * automatique. Le moteur n'a donc rien a savoir de cette regle, et le retour
+   * est lisse par le rattrapage qu'on lui donne — plus long qu'un suivi, pour
+   * que le relachement se voie.
+   */
+  const aimed = followAim(
+    pointer
+      ? {
+          nx: (pointer.x - (box.left + box.width / 2)) / demiLargeur,
+          ny: (pointer.y - (box.top + box.height / 2)) / demiHauteur,
+          movedAt: lastMoveAt
+        }
+      : null,
+    clock,
+    easings.easeOutQuint(clamp((clock - turnSince) / TURN_TIME))
+  )
   engine.setLook(
-    lookTarget({
-      nx: pointer ? clamp((pointer.x - (box.left + box.width / 2)) / demiLargeur, -1, 1) : 0,
-      ny: pointer ? clamp((pointer.y - (box.top + box.height / 2)) / demiHauteur, -1, 1) : 0,
-      tour: easings.easeOutQuint(clamp((clock - turnSince) / TURN_TIME)),
-      pointer: pointer !== null
-    }),
-    clock
+    lookTarget(aimed),
+    clock,
+    aimed.pointer ? BotEngine.LOOK_MORPH : AIM_RELAX
   )
   aiming = true
 }
@@ -416,6 +447,16 @@ watch(expression, (expr) => {
   engine.setExpression(expr, clock)
   redrawFrozen()
 })
+
+// Preference de rendu, pas animation : elle s'applique d'un coup, et une
+// vignette figee doit etre redessinee pour en tenir compte.
+watch(
+  () => props.calm,
+  (calm) => {
+    engine.setCalm(calm)
+    redrawFrozen()
+  }
+)
 
 /**
  * Deplacer `frozenAt` redessine. La prop ne servait qu'a poser une vignette une
