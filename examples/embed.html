@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>bloub-avatar — embedding demo</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --fond: #ffffff;
+        --encre: #16181d;
+        --trait: #e4e6eb;
+        --doux: #6b7280;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 2rem 1rem;
+        background: var(--fond);
+        color: var(--encre);
+        font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+      }
+      main {
+        width: min(46rem, 100%);
+        display: grid;
+        gap: 1.5rem;
+        grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+        align-items: start;
+      }
+      @media (max-width: 40rem) {
+        main {
+          grid-template-columns: 1fr;
+        }
+      }
+      h1 {
+        grid-column: 1 / -1;
+        margin: 0;
+        font-size: 1.35rem;
+        letter-spacing: -0.01em;
+      }
+      h1 small {
+        display: block;
+        color: var(--doux);
+        font-size: 0.8rem;
+        font-weight: 400;
+        letter-spacing: 0;
+      }
+      .scene {
+        display: grid;
+        place-items: center;
+        gap: 1rem;
+        min-height: 16rem;
+        padding: 2rem 1rem;
+        border: 1px solid var(--trait);
+        border-radius: 1rem;
+      }
+      .scene bloub-avatar {
+        /* The element sizes itself; this only keeps it centred. */
+        flex: none;
+      }
+      .controls {
+        display: grid;
+        gap: 0.85rem;
+      }
+      label {
+        display: grid;
+        gap: 0.25rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: var(--doux);
+      }
+      select,
+      input[type='range'] {
+        width: 100%;
+        accent-color: var(--encre);
+      }
+      select {
+        height: 2.1rem;
+        padding: 0 0.5rem;
+        border: 1px solid var(--trait);
+        border-radius: 0.5rem;
+        background: #fff;
+        color: var(--encre);
+        font: inherit;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+      }
+      button {
+        height: 2.2rem;
+        border: 0;
+        border-radius: 0.55rem;
+        background: var(--encre);
+        color: #fff;
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button.ghost {
+        border: 1px solid var(--trait);
+        background: transparent;
+        color: var(--encre);
+      }
+      .log {
+        grid-column: 1 / -1;
+        margin: 0;
+        padding: 0.75rem 0.9rem;
+        min-height: 3.2rem;
+        border-radius: 0.65rem;
+        background: #f5f6f8;
+        color: var(--doux);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.78rem;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>
+        &lt;bloub-avatar&gt;
+        <small>Run <code>pnpm dev</code> and open /examples/embed.html</small>
+      </h1>
+
+      <section class="scene">
+        <bloub-avatar
+          id="bot"
+          state="idle"
+          size="220"
+          theme="auto"
+          level="0"
+          glow="on"
+          follow-pointer="on"
+          reduced-motion="auto"
+        ></bloub-avatar>
+      </section>
+
+      <section class="controls">
+        <label>
+          state
+          <select id="state"></select>
+        </label>
+
+        <div class="row">
+          <label>
+            theme
+            <select id="theme">
+              <option value="light">light</option>
+              <option value="dark">dark</option>
+              <option value="auto" selected>auto</option>
+            </select>
+          </label>
+          <label>
+            reduced-motion
+            <select id="reduced">
+              <option value="auto" selected>auto</option>
+              <option value="on">on</option>
+              <option value="off">off</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="row">
+          <label>
+            glow
+            <select id="glow">
+              <option value="on" selected>on</option>
+              <option value="off">off</option>
+            </select>
+          </label>
+          <label>
+            follow-pointer
+            <select id="follow">
+              <option value="on" selected>on</option>
+              <option value="off">off</option>
+            </select>
+          </label>
+        </div>
+
+        <label>
+          size — <output id="size-out">220</output>px
+          <input id="size" type="range" min="48" max="420" step="2" value="220" />
+        </label>
+
+        <label>
+          level — <output id="level-out">0.00</output>
+          <input id="level" type="range" min="0" max="1" step="0.01" value="0" />
+        </label>
+
+        <div class="row">
+          <button id="talk" type="button">Talk</button>
+          <button id="cycle" class="ghost" type="button">Next state</button>
+        </div>
+      </section>
+
+      <pre id="log" class="log" aria-live="polite">statechange → idle</pre>
+    </main>
+
+    <!--
+      In this repository the demo imports the source entry so `pnpm dev` is
+      enough. A built copy would import `/dist-lib/bloub-avatar.js` instead.
+    -->
+    <script type="module">
+      import '/src/embed/index.ts'
+      import { STATES } from '/src/bot/states.ts'
+
+      const bot = document.querySelector('#bot')
+      const state = document.querySelector('#state')
+      const theme = document.querySelector('#theme')
+      const reduced = document.querySelector('#reduced')
+      const glow = document.querySelector('#glow')
+      const follow = document.querySelector('#follow')
+      const size = document.querySelector('#size')
+      const sizeOut = document.querySelector('#size-out')
+      const level = document.querySelector('#level')
+      const levelOut = document.querySelector('#level-out')
+      const log = document.querySelector('#log')
+
+      const ids = STATES.filter((s) => s.id !== 'swirl').map((s) => s.id)
+      state.innerHTML = ids
+        .map((id) => `<option value="${id}">${id}</option>`)
+        .join('')
+
+      let messages = 0
+      bot.addEventListener('statechange', (event) => {
+        messages += 1
+        log.textContent =
+          `statechange → ${event.detail.state}\n` +
+          `${messages} event${messages === 1 ? '' : 's'} since load`
+        state.value = event.detail.state
+      })
+
+      state.addEventListener('change', () => (bot.state = state.value))
+      theme.addEventListener('change', () => (bot.theme = theme.value))
+      reduced.addEventListener('change', () => (bot.reducedMotion = reduced.value))
+      glow.addEventListener('change', () => (bot.glow = glow.value))
+      follow.addEventListener('change', () => (bot.followPointer = follow.value))
+
+      size.addEventListener('input', () => {
+        sizeOut.textContent = size.value
+        bot.size = Number(size.value)
+      })
+
+      level.addEventListener('input', () => {
+        levelOut.textContent = Number(level.value).toFixed(2)
+        bot.level = Number(level.value)
+      })
+
+      document.querySelector('#cycle').addEventListener('click', () => {
+        const i = ids.indexOf(bot.state)
+        bot.state = ids[(i + 1) % ids.length]
+      })
+
+      // A short fake utterance, to show `level` driving the talking bob.
+      document.querySelector('#talk').addEventListener('click', () => {
+        const start = performance.now()
+        const duration = 1800
+        const step = (now) => {
+          const t = (now - start) / duration
+          if (t >= 1) {
+            bot.level = 0
+            level.value = '0'
+            levelOut.textContent = '0.00'
+            return
+          }
+          const value = Math.max(0, Math.sin(t * Math.PI * 9)) * (1 - t)
+          bot.level = value
+          level.value = String(value)
+          levelOut.textContent = value.toFixed(2)
+          requestAnimationFrame(step)
+        }
+        requestAnimationFrame(step)
+      })
+    </script>
+  </body>
+</html>

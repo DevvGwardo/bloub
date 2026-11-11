@@ -18,6 +18,7 @@ Then open http://localhost:5190.
 ```bash
 pnpm test     # vitest
 pnpm build    # vue-tsc --noEmit && vite build
+pnpm build:lib # the embeddable element, in dist-lib/
 ```
 
 Vue 3, Vite, TypeScript, Tailwind 4. No ESLint and no Prettier: `vue-tsc` is the
@@ -95,6 +96,51 @@ is how the thumbnails and the state board are drawn.
 Props: `size`, `shape`, `color`, `expression`, `paper`, `frozenAt`, `cycle`,
 `follow`, `gaze`. Models: `block`, `state`, `playing`, `elapsed`. See
 [BloubBot.vue](src/components/BloubBot.vue) for the details.
+
+## Embedding
+
+`pnpm build:lib` produces a self-contained ES module in
+`dist-lib/bloub-avatar.js` (Vue included). Drop it on any page and importing it
+registers `<bloub-avatar>`:
+
+```html
+<script type="module" src="/bloub-avatar.js"></script>
+
+<bloub-avatar state="idle" size="160" theme="auto"></bloub-avatar>
+
+<script type="module">
+  const bot = document.querySelector('bloub-avatar')
+
+  bot.addEventListener('statechange', (event) => {
+    console.log('now showing', event.detail.state)
+  })
+
+  // Attributes and properties are both live.
+  bot.state = 'wink'
+  bot.setAttribute('level', '0.4')
+</script>
+```
+
+| Attribute | Values | Default | What it does |
+|---|---|---|---|
+| `state` | `idle`, `thinking`, `wink`, `wide`, `alert`, `notify`, `exclaim`, `sleep`, `egg`, `hexagon`, `play`, `orbit`, `burst`, `comet` | `idle` | Pose to hold. Unknown values fall back to `idle`. |
+| `size` | pixels, 16–1024 | `160` | Square size of the drawing. |
+| `theme` | `light` \| `dark` \| `auto` | `auto` | Palette. `auto` follows `prefers-color-scheme`. |
+| `level` | `0`–`1` | `0` | Talking energy: a small bob and a brighter halo. Update it from your audio or typing loop. |
+| `glow` | `on` \| `off` | `off` | Soft halo behind the avatar. |
+| `follow-pointer` | `on` \| `off` | `off` | Eyes track the mouse on states with a rest face (e.g. `idle`). Ignored for touch and when motion is reduced. |
+| `reduced-motion` | `auto` \| `on` \| `off` | `auto` | `auto` follows the system setting. `on` freezes the avatar on the most readable pose of its state; `off` always animates. |
+
+The element is rendered in a shadow root. Two details are worth knowing:
+
+- In `light` the eye cut-outs are filled `#ffffff`, in `dark` `#0b0b0d`. Put the
+  element on a background of the same colour, or the holes will show as light
+  specks on a dark page and vice versa.
+- `statechange` bubbles and is composed, so it can be listened to on the element
+  or anywhere above it. `event.detail.state` is the state actually shown.
+
+`examples/embed.html` is a live demo: run `pnpm dev` and open
+<http://localhost:5190/examples/embed.html>.
 
 ## Changes
 
