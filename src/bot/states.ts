@@ -207,7 +207,7 @@ export const STATES: StateDef[] = [
   {
     id: 'idle',
     duration: 2.4,
-    morph: 0.45,
+    morph: 0.42,
     blinkIn: false,
     baseFace: true,
     baseBody: true,
@@ -217,7 +217,7 @@ export const STATES: StateDef[] = [
   {
     id: 'thinking',
     duration: 2.6,
-    morph: 0.4,
+    morph: 0.36,
     baseFace: false,
     baseBody: false,
     blinkIn: true,
@@ -246,7 +246,7 @@ export const STATES: StateDef[] = [
   {
     id: 'wink',
     duration: 1.6,
-    morph: 0.3,
+    morph: 0.28,
     blinkIn: true,
     baseFace: false,
     baseBody: true,
@@ -266,7 +266,7 @@ export const STATES: StateDef[] = [
   {
     id: 'wide',
     duration: 1.8,
-    morph: 0.55,
+    morph: 0.5,
     blinkIn: true,
     baseFace: false,
     baseBody: true,
@@ -283,7 +283,7 @@ export const STATES: StateDef[] = [
     duration: 2.4,
     // le "!" revient en place a 1.6 + 0.4
     minDuration: 2,
-    morph: 0.45,
+    morph: 0.42,
     baseFace: false,
     baseBody: false,
     blinkIn: false,
@@ -317,7 +317,7 @@ export const STATES: StateDef[] = [
   {
     id: 'notify',
     duration: 2.2,
-    morph: 0.5,
+    morph: 0.46,
     blinkIn: true,
     baseFace: false,
     baseBody: true,
@@ -345,7 +345,7 @@ export const STATES: StateDef[] = [
   {
     id: 'exclaim',
     duration: 2,
-    morph: 0.45,
+    morph: 0.4,
     baseFace: false,
     baseBody: false,
     blinkIn: false,
@@ -360,7 +360,7 @@ export const STATES: StateDef[] = [
   {
     id: 'sleep',
     duration: 2.4,
-    morph: 0.5,
+    morph: 0.46,
     baseFace: false,
     baseBody: false,
     blinkIn: false,
@@ -375,7 +375,7 @@ export const STATES: StateDef[] = [
   {
     id: 'egg',
     duration: 1.8,
-    morph: 0.4,
+    morph: 0.36,
     baseFace: false,
     baseBody: false,
     blinkIn: true,
@@ -392,7 +392,7 @@ export const STATES: StateDef[] = [
   {
     id: 'hexagon',
     duration: 1.6,
-    morph: 0.4,
+    morph: 0.36,
     baseFace: false,
     baseBody: false,
     blinkIn: true,
@@ -408,7 +408,7 @@ export const STATES: StateDef[] = [
   {
     id: 'play',
     duration: 2,
-    morph: 0.5,
+    morph: 0.44,
     baseFace: false,
     baseBody: false,
     blinkIn: true,
@@ -436,7 +436,7 @@ export const STATES: StateDef[] = [
     duration: 3.4,
     // le corps a fini de se relacher du triangle vers la boule a 1.6 + 0.9
     minDuration: 2.5,
-    morph: 0.6,
+    morph: 0.52,
     baseFace: false,
     baseBody: false,
     blinkIn: false,
@@ -528,7 +528,7 @@ export const STATES: StateDef[] = [
     duration: 2.6,
     // le corps est recompose a 1.7 + 0.7
     minDuration: 2.4,
-    morph: 0.4,
+    morph: 0.36,
     baseFace: false,
     baseBody: false,
     blinkIn: false,
@@ -552,7 +552,7 @@ export const STATES: StateDef[] = [
     // la video : ce reliquat se termine pendant le fondu suivant, comme dans la
     // reference. On ne descend donc pas sous la duree mesuree.
     minDuration: 2.4,
-    morph: 0.45,
+    morph: 0.4,
     baseFace: false,
     baseBody: false,
     blinkIn: false,

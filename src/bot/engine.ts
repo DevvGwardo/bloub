@@ -2,7 +2,7 @@ import { arcRender, type ArcRender, type DotRender } from './decor'
 import { blendExpression, type BotExpression } from './expressions'
 import { decalageDesYeux } from './eyefit'
 import { blinkScale, eyePoses, liveliness } from './face'
-import { clamp, easings, lerp, r2 } from './math'
+import { TAU, clamp, easings, lerp, r2, springPulse } from './math'
 import {
   blend,
   capsulePath,
@@ -73,6 +73,22 @@ export interface Look {
 }
 
 const NO_LOOK: Look = { yaw: 0, pitch: 0, mix: 0, spin: 0, wander: 1 }
+
+/**
+ * Rebond du corps pendant un fondu d'etat, en fraction de rayon.
+ *
+ * `puff` dilate le corps dans toutes les directions, `squash` ajoute une
+ * modulation `cos(2 theta)` : le corps s'elargit legerement et s'aplatit
+ * d'autant, ce qui se lit comme un atterrissage souple plutot que comme une
+ * boule qui gonfle. La somme des deux (3,3 %) est le depassement maximal ; elle
+ * reste sous les 4 % demandes, meme combinee au leger depassement du ressort de
+ * pose.
+ *
+ * Applique aux RAYONS et non a `sx`/`sy` : les yeux sont recolles au contour par
+ * `radiusAtAngle`, donc ils suivent le rebond au lieu de rester en arriere. Un
+ * `sx`/`sy` les laisserait dans l'ancien repere et le masque les mangerait.
+ */
+export const BODY_SPRING = { puff: 0.022, squash: 0.011 } as const
 
 const lerpLook = (a: Look, b: Look, t: number): Look => ({
   yaw: lerp(a.yaw, b.yaw, t),
@@ -387,7 +403,34 @@ export class BotEngine {
     if (since >= def.morph) return pose
     const origine = this.origine(now, shape, expr)
     if (!origine) return pose
-    return blendPose(origine, pose, easings.easeOutQuint(clamp(since / def.morph)))
+    const k = clamp(since / def.morph)
+    const melange = blendPose(origine, pose, easings.springOut(k))
+    this.rebond(melange, k)
+    return melange
+  }
+
+  /**
+   * Etirement de ressort applique au corps d'une pose DEJA melangee.
+   *
+   * Il ne touche que les rayons, et seulement pendant le fondu : a `k = 0` et
+   * `k = 1` l'enveloppe est nulle, donc le raccord avec la pose figee d'un cote
+   * et la pose d'arrivee de l'autre est exact. Les yeux n'ont rien a savoir :
+   * `radiusAtAngle` les recolle a ces rayons dans `sample`.
+   *
+   * Appele sur le tableau rendu par `blendPose`, qui vient d'etre alloue pour
+   * l'image : la modification en place n'abime ni une pose d'etat (constante de
+   * module) ni un tableau de forme du personnalisateur.
+   */
+  private rebond(pose: Pose, k: number) {
+    const pulse = springPulse(k)
+    if (pulse <= 0) return
+    const radii = pose.sil.radii
+    const n = radii.length
+    for (let i = 0; i < n; i++) {
+      const angle = (i / n) * TAU
+      const scale = 1 + pulse * (BODY_SPRING.puff + BODY_SPRING.squash * Math.cos(2 * angle))
+      radii[i] = (radii[i] ?? 1) * scale
+    }
   }
 
   /**
@@ -437,13 +480,20 @@ export class BotEngine {
     // plus. C'est l'optimisation qui parait innocente et qui casse tout.
     const origine = since < def.morph ? this.origine(now, shape, expr) : null
     if (origine) {
-      // Ease-out exponentiel : c'est la courbe mesuree sur la video. Le corps
-      // n'a pas d'overshoot (seuls la pastille et l'ouverture des yeux en ont).
-      // Le ratio est borne : relire une date ANTERIEURE au changement d'etat
-      // donnerait un ratio negatif, que l'ease-out extrapole — la silhouette
-      // part alors trente fois trop loin.
-      const ratio = easings.easeOutQuint(clamp(since / def.morph))
+      /*
+       * Ressort amorti, en forme close : la courbe part de 0 avec de la vitesse,
+       * depasse sa cible de ~0,8 %, puis s'y pose. `clamp` borne le temps
+       * normalise : relire une date ANTERIEURE au changement d'etat donnerait un
+       * ratio negatif, et le ressort extrapolerait — la silhouette partirait
+       * trente fois trop loin. Le rebond du corps est complete par `rebond`
+       * ci-dessous, borne a 3,3 % rayon.
+       */
+      const k = clamp(since / def.morph)
+      const ratio = easings.springOut(k)
       pose = blendPose(origine, pose, ratio)
+      // Le rebond se pose SUR le melange : il dilate et aplatit legerement le
+      // corps, et les yeux le suivent par `radiusAtAngle`.
+      this.rebond(pose, k)
       // Le decalage des yeux suit la MEME courbe que la silhouette qui le motive. Il vient
       // de l'etat quitte, que `setState` renseigne toujours en meme temps que l'origine —
       // le test est la pour le typage, pas pour un cas reel.

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { BotEngine } from './engine'
+import { BODY_SPRING, BotEngine } from './engine'
 import { radiusAtAngle } from './shape'
 import { EXPRESSION_BY_ID } from './expressions'
 import { REST_GAZE } from './face'
 import { SHAPE_BY_ID } from './skins'
-import { SEQUENCE, STATES, type StateId } from './states'
+import { SEQUENCE, STATES, STATE_BY_ID, type StateId } from './states'
 
 /** Points d'ancrage d'un path genere par closedPath (on ignore les controles). */
 function anchors(d: string): Array<[number, number]> {
@@ -121,6 +121,64 @@ describe('moteur', () => {
         }
       }
     }
+  })
+})
+
+/**
+ * Le ressort de transition remplace l'ease-out exponentiel. Ses proprietes utiles sont
+ * verrouillees ici sur la GEOMETRIE RENDUE, pas sur la courbe seule : c'est le corps que
+ * l'on voit rebondir, et c'est lui qui doit rester sous les 4 %.
+ */
+describe('ressort de transition', () => {
+  /** Etats a pose fixe : la comparaison de taille ne dit rien sur un corps qui tourne. */
+  const PAIRES: Array<[StateId, StateId]> = [
+    ['idle', 'wide'],
+    ['wide', 'idle'],
+    ['idle', 'egg'],
+    ['egg', 'idle'],
+    ['idle', 'hexagon'],
+    ['hexagon', 'idle'],
+    ['notify', 'idle'],
+    ['idle', 'sleep'],
+    ['sleep', 'idle'],
+    ['idle', 'exclaim'],
+    ['exclaim', 'idle']
+  ]
+
+  it('borne le rebond du corps a 4 % et le montre vraiment', () => {
+    expect(BODY_SPRING.puff + BODY_SPRING.squash).toBeLessThan(0.04)
+    let rebondi = false
+    for (const [depuis, vers] of PAIRES) {
+      const e = new BotEngine(100, depuis)
+      e.setState(vers, 0)
+      const duree = STATE_BY_ID.get(vers)!.morph
+      const depart = footprint(e.sample(0).bodyPath)
+      const arrivee = footprint(e.sample(duree).bodyPath)
+      const plafondW = Math.max(depart.w, arrivee.w) * 1.04
+      const plafondH = Math.max(depart.h, arrivee.h) * 1.04
+      for (let i = 0; i <= 240; i++) {
+        const t = (i / 240) * duree
+        const f = footprint(e.sample(t).bodyPath)
+        expect(f.w, `${depuis}->${vers} largeur a ${t.toFixed(3)}s`).toBeLessThanOrEqual(plafondW)
+        expect(f.h, `${depuis}->${vers} hauteur a ${t.toFixed(3)}s`).toBeLessThanOrEqual(plafondH)
+        if (f.w > Math.max(depart.w, arrivee.w) * 1.01) rebondi = true
+      }
+    }
+    // sans ce temoin, un ressort devenu plat passerait le test de borne
+    expect(rebondi).toBe(true)
+  })
+
+  it('aplatit le corps au sommet du rebond', () => {
+    const e = new BotEngine(100, 'idle')
+    e.setState('wide', 0)
+    const duree = STATE_BY_ID.get('wide')!.morph
+    let sommet = { w: 0, h: 0 }
+    for (let i = 0; i <= 240; i++) {
+      const f = footprint(e.sample((i / 240) * duree).bodyPath)
+      if (f.w > sommet.w) sommet = f
+    }
+    // le corps s'elargit plus qu'il ne grandit : c'est le squash, pas un simple puff
+    expect(sommet.w).toBeGreaterThan(sommet.h + 0.02)
   })
 })
 
@@ -500,6 +558,23 @@ describe('changement d etat pendant un fondu', () => {
 
     // 100 ms apres le premier, donc en plein fondu de 0,55 s
     expect(sautApres([['wide', 0.5], ['idle', 0.6]], 0.6)).toBeLessThanOrEqual(espace)
+  })
+
+  it('est exactement continu quand le changement tombe en plein fondu', () => {
+    /*
+     * A l'instant du changement, le nouveau fondu part de la pose composite figee avec un
+     * ratio de 0 et une enveloppe de rebond de 0 : l'image doit etre IDENTIQUE, pas
+     * seulement proche. C'est le test le plus direct de la continuite, et il couvre le
+     * corps comme les yeux.
+     */
+    const e = new BotEngine(100, 'idle')
+    e.setState('wide', 0)
+    const avant = e.sample(0.2)
+    e.setState('egg', 0.2)
+    const apres = e.sample(0.2)
+    expect(apres.bodyPath).toBe(avant.bodyPath)
+    expect(apres.eyes).toEqual(avant.eyes)
+    expect(apres.bodyAlpha).toBe(avant.bodyAlpha)
   })
 
   it('tient sur des changements enchaines', () => {
