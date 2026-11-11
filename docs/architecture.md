@@ -161,7 +161,7 @@ Each of these was written and tested, and each broke something visible:
 The margin aimed for is the one the **cat's own profile** gives, not clearance: on the cat
 the outer eye already sits close to the edge and that is deliberate, it is what gives the
 volume. Aiming for clearance left the eye exactly tangent, which shows. On the cat both
-outlines are the same, so the offset is `0, 0` by construction and the reference does not
+outlines are the same, so the offset is `0, 0` by construction and the default cat does not
 move — which is also what protects `public/favicon.svg`.
 
 `src/bot/skins.test.ts` locks all of it. It counts back-and-forths frame by frame rather

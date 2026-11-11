@@ -56,7 +56,7 @@ export interface CatParams {
 }
 
 /**
- * Le chat de reference du projet. La tete fait environ 1.2 fois plus de large
+ * Le chat par defaut du projet. La tete fait environ 1.2 fois plus de large
  * que de haut une fois normalisee, oreilles comprises.
  */
 export const CAT: CatParams = {

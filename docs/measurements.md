@@ -97,8 +97,8 @@ sits outside `SEQUENCE`.)
 
 There is no extractor any more. `profiles.ts` is a thin re-export of
 `cat.ts`; change the parameters and the profiles follow at import. The old
-`tools/extract-profiles.py` and its `reference.mp4` / `frames/` inputs were
-removed because they encoded the previous mascot.
+profile-extraction tool and its local video frames were removed because they
+encoded the previous mascot.
 
 ## The favicon is not an approximation
 
