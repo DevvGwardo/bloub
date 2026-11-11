@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { BotEngine } from './engine'
+import { NOTIF_ANGLE } from './decor'
+import { PROFILES } from './profiles'
 import { radiusAtAngle } from './shape'
 import { EXPRESSION_BY_ID } from './expressions'
 import { REST_GAZE } from './face'
@@ -27,46 +29,49 @@ function footprint(d: string) {
   }
 }
 
-/** Empreintes relevees sur la video (largeur x hauteur, en diametres de boule). */
-const EMPREINTES: Array<[StateId, number, number, number, number]> = [
-  // etat,        date,  largeur, hauteur, tolerance
-  ['idle', 0.5, 2.0, 2.0, 0.05],
-  ['egg', 0.9, 1.653, 2.0, 0.06],
-  ['hexagon', 0.9, 1.82, 2.01, 0.07],
-  ['exclaim', 0.9, 0.263, 0.842, 0.03],
-  ['alert', 0.8, 0.421, 0.753, 0.04],
-  ['sleep', 0.6, 0.317, 0.317, 0.03],
-  ['comet', 1.0, 0.258, 0.258, 0.03]
-]
-
+/**
+ * Le chat est une silhouette analytique, pas une empreinte relevee. On verifie
+ * donc des RAPPORTS (plus large que haut, le pain de chat plus bas que le
+ * repos, l'etirement plus haut) et non des valeurs supposees venues d'ailleurs.
+ */
 describe('silhouettes', () => {
-  for (const [id, t, w, h, tol] of EMPREINTES) {
-    it(`"${id}" a l empreinte mesuree sur la video`, () => {
-      const e = new BotEngine(100, id)
-      const { w: gw, h: gh } = footprint(e.sample(t).bodyPath)
-      expect(Math.abs(gw - w)).toBeLessThan(tol)
-      expect(Math.abs(gh - h)).toBeLessThan(tol)
-    })
-  }
-
-  it('la boule au repos est un cercle, pas un ovale', () => {
+  it('le chat au repos est plus large que haut, oreilles comprises', () => {
     const e = new BotEngine(100, 'idle')
     const { w, h } = footprint(e.sample(0.5).bodyPath)
-    expect(Math.abs(w - h)).toBeLessThan(0.03)
+    expect(w).toBeGreaterThan(1.6)
+    expect(w / h).toBeGreaterThan(1.15)
+    expect(w / h).toBeLessThan(1.25)
   })
 
-  it('le triangle est plus large que haut, pointe en haut', () => {
-    const e = new BotEngine(100, 'play')
-    const { w, h } = footprint(e.sample(0.9).bodyPath)
-    expect(w).toBeGreaterThan(h)
-    expect(Math.abs(w - 1.99)).toBeLessThan(0.08)
+  it('le pain de chat est plus large et plus bas que le repos', () => {
+    const repos = footprint(new BotEngine(100, 'idle').sample(0.5).bodyPath)
+    const pain = footprint(new BotEngine(100, 'loaf').sample(0.5).bodyPath)
+    expect(pain.h).toBeLessThan(repos.h)
+    expect(pain.w / pain.h).toBeGreaterThan(repos.w / repos.h)
+  })
+
+  it('l etirement est plus haut et plus etroit que le repos', () => {
+    const repos = footprint(new BotEngine(100, 'idle').sample(0.5).bodyPath)
+    const etire = footprint(new BotEngine(100, 'stretch').sample(0.7).bodyPath)
+    expect(etire.h).toBeGreaterThan(repos.h)
+    expect(etire.w / etire.h).toBeLessThan(repos.w / repos.h)
+  })
+
+  it('les oreilles depassent le sommet du crane', () => {
+    // sur le chemin du repos, les deux maxima lateraux sont des oreilles : le
+    // dessus du crane entre elles est plus bas que leurs pointes
+    const e = new BotEngine(100, 'idle')
+    const pts = anchors(e.sample(0.5).bodyPath)
+    const sommet = Math.min(...pts.map(([, y]) => y))
+    const median = pts.filter(([x]) => Math.abs(x) < 8).map(([, y]) => y)
+    expect(Math.min(...median)).toBeGreaterThan(sommet + 2)
   })
 })
 
 describe('moteur', () => {
   it('est une fonction pure du temps : deux lectures a la meme date sont identiques', () => {
-    const a = new BotEngine(100, 'orbit')
-    const b = new BotEngine(100, 'orbit')
+    const a = new BotEngine(100, 'chase')
+    const b = new BotEngine(100, 'chase')
     expect(a.sample(1.3).bodyPath).toBe(b.sample(1.3).bodyPath)
     // et relire une date deja passee redonne la meme image
     const first = a.sample(0.7).bodyPath
@@ -78,7 +83,7 @@ describe('moteur', () => {
     // le piege : purger l'etat precedent une fois le fondu fini rend cette
     // date irrecuperable, et le fondu disparait a la relecture
     const e = new BotEngine(100, 'idle')
-    e.setState('egg', 1)
+    e.setState('loaf', 1)
     const pendant = e.sample(1.2).bodyPath
     e.sample(3)
     expect(e.sample(1.2).bodyPath).toBe(pendant)
@@ -88,7 +93,7 @@ describe('moteur', () => {
     // avant le changement, il n'y a rien a fondre : on doit voir l'etat sortant
     const e = new BotEngine(100, 'idle')
     const avant = e.sample(0.5).bodyPath
-    e.setState('egg', 1)
+    e.setState('loaf', 1)
     expect(e.sample(0.5).bodyPath).toBe(avant)
   })
 
@@ -100,14 +105,19 @@ describe('moteur', () => {
 
   it('interpole la silhouette pendant une transition, sans saut', () => {
     const e = new BotEngine(100, 'idle')
-    e.setState('egg', 1)
-    const largeurs = [1, 1.1, 1.2, 1.3, 1.4].map((t) => footprint(e.sample(t).bodyPath).w)
-    // strictement decroissant : la boule se retrecit vers l'oeuf
-    for (let i = 1; i < largeurs.length; i++) {
-      expect(largeurs[i]!).toBeLessThan(largeurs[i - 1]!)
+    e.setState('loaf', 1)
+    const hauteurs = [1, 1.1, 1.2, 1.3, 1.4].map((t) => footprint(e.sample(t).bodyPath).h)
+    // le chat se tasse : la hauteur descend, a la respiration pres (moins d'un
+    // pixel sur un rayon de 100)
+    for (let i = 1; i < hauteurs.length; i++) {
+      expect(hauteurs[i]!).toBeLessThan(hauteurs[i - 1]! + 0.02)
     }
-    expect(largeurs[0]!).toBeCloseTo(2, 1)
-    expect(footprint(e.sample(2).bodyPath).w).toBeCloseTo(1.65, 1)
+    expect(hauteurs[0]! - hauteurs[hauteurs.length - 1]!).toBeGreaterThan(0.1)
+    expect(hauteurs[0]!).toBeCloseTo(footprint(new BotEngine(100, 'idle').sample(1).bodyPath).h, 1)
+    expect(footprint(e.sample(2).bodyPath).h).toBeCloseTo(
+      footprint(new BotEngine(100, 'loaf').sample(2).bodyPath).h,
+      1
+    )
   })
 
   it('ne fait jamais depasser le corps du viewBox', () => {
@@ -135,10 +145,12 @@ describe('forme personnalisee', () => {
   })
 
   it('laisse intacts les etats qui dessinent leur propre forme', () => {
-    for (const id of ['exclaim', 'alert', 'sleep', 'egg', 'hexagon'] as const) {
+    const propres = STATES.filter((s) => !s.baseBody).map((s) => s.id)
+    expect(propres.length).toBeGreaterThan(5)
+    for (const id of propres) {
       const nu = new BotEngine(100, id)
       const habille = new BotEngine(100, id, radii('goutte'))
-      expect(habille.sample(1).bodyPath).toBe(nu.sample(1).bodyPath)
+      expect(habille.sample(1).bodyPath, id).toBe(nu.sample(1).bodyPath)
     }
   })
 
@@ -187,12 +199,12 @@ describe('forme personnalisee', () => {
 
 describe('etats', () => {
   /**
-   * La sequence est le CATALOGUE : les 14 etats releves sur la video, ceux que
-   * la palette propose et que la planche montre. Tout etat hors sequence est une
-   * transition d'interface, choisie et non mesuree — il ne doit donc jamais
-   * apparaitre dans le catalogue, et le rester est precisement ce qu'on verifie.
+   * La sequence est le CATALOGUE : les 14 poses du chat, celles que la palette
+   * propose et que la planche montre. Tout etat hors sequence est une transition
+   * d'interface : il ne doit donc jamais apparaitre dans le catalogue, et le
+   * rester est precisement ce qu'on verifie.
    */
-  it('garde les 14 etats de la video dans la sequence, et rien d autre', () => {
+  it('garde les 14 poses du chat dans la sequence, et rien d autre', () => {
     expect(SEQUENCE).toHaveLength(14)
     expect(new Set(SEQUENCE).size).toBe(14)
     for (const id of SEQUENCE) expect(STATES.some((s) => s.id === id), id).toBe(true)
@@ -203,32 +215,46 @@ describe('etats', () => {
     expect(horsSequence).toEqual(['swirl'])
   })
 
-  it('montre le visage sur les etats a visage, le cache sur les autres', () => {
-    const avec: StateId[] = ['idle', 'wink', 'wide', 'notify', 'egg', 'hexagon']
-    const sans: StateId[] = ['thinking', 'alert', 'exclaim', 'sleep']
-    for (const id of avec) expect(new BotEngine(100, id).sample(0.9).eyes.length).toBe(2)
-    for (const id of sans) expect(new BotEngine(100, id).sample(0.9).eyes.length).toBe(0)
+  it('montre le visage sur les poses qui ont des yeux, le cache sur les autres', () => {
+    const avec: StateId[] = [
+      'idle',
+      'thinking',
+      'wink',
+      'wide',
+      'alert',
+      'notify',
+      'exclaim',
+      'sleep',
+      'loaf',
+      'stretch',
+      'swat',
+      'chase'
+    ]
+    const sans: StateId[] = ['puff', 'pounce']
+    for (const id of avec) expect(new BotEngine(100, id).sample(0.9).eyes.length, id).toBe(2)
+    for (const id of sans) expect(new BotEngine(100, id).sample(0.9).eyes.length, id).toBe(0)
   })
 
   it('creuse une encoche autour de la pastille de notification', () => {
     const f = new BotEngine(100, 'notify').sample(1)
     expect(f.notif).not.toBeNull()
     expect(f.notch).not.toBeNull()
-    // marge constante mesuree : 0.054 rayon
-    expect((f.notch!.r - f.notif!.r) / 100).toBeCloseTo(0.054, 2)
-    // la pastille est posee sur la circonference
-    expect(Math.hypot(f.notif!.x, f.notif!.y) / 100).toBeCloseTo(1.003, 1)
+    // marge constante choisie : 0.05 rayon
+    expect((f.notch!.r - f.notif!.r) / 100).toBeCloseTo(0.05, 2)
+    // la pastille est posee sur le contour reel du chat, pas sur un cercle
+    const bord = radiusAtAngle(PROFILES.cat, (NOTIF_ANGLE * Math.PI) / 180)
+    expect(Math.hypot(f.notif!.x, f.notif!.y) / 100).toBeCloseTo(bord, 1)
   })
 
   it('trace les anneaux devant ET derriere le corps', () => {
-    const f = new BotEngine(100, 'orbit').sample(1.4)
+    const f = new BotEngine(100, 'chase').sample(1.4)
     expect(f.arcs.length).toBeGreaterThan(3)
     expect(f.arcs.some((a) => a.back.length > 0)).toBe(true)
     expect(f.arcs.some((a) => a.front.length > 0)).toBe(true)
   })
 
-  it('fait spiraler les particules vers le centre pendant l eclatement', () => {
-    const e = new BotEngine(100, 'burst')
+  it('fait spiraler les particules vers le centre pendant le herissement', () => {
+    const e = new BotEngine(100, 'puff')
     const rayon = (t: number) => {
       const d = e.sample(t).dots[0]
       return d ? Math.hypot(d.x, d.y) : 0
@@ -413,14 +439,14 @@ describe('robustesse du regard', () => {
 describe('reset', () => {
   it('oublie l etat precedent, la ou setState le garde pour le fondre', () => {
     const avecFondu = new BotEngine(100, 'idle')
-    avecFondu.setState('egg', 0)
+    avecFondu.setState('loaf', 0)
     const remis = new BotEngine(100, 'idle')
-    remis.reset('egg', 0)
+    remis.reset('loaf', 0)
 
-    // au debut du morph, l'un melange encore le repos, l'autre est deja l'oeuf
+    // au debut du morph, l'un melange encore le repos, l'autre est deja tasse
     expect(avecFondu.sample(0).bodyPath).not.toBe(remis.sample(0).bodyPath)
-    // et l'oeuf seul est bien ce qu'un moteur neuf sur `egg` rend
-    expect(remis.sample(0).bodyPath).toBe(new BotEngine(100, 'egg').sample(0).bodyPath)
+    // et le pain de chat seul est bien ce qu'un moteur neuf sur `loaf` rend
+    expect(remis.sample(0).bodyPath).toBe(new BotEngine(100, 'loaf').sample(0).bodyPath)
   })
 
   /*
@@ -430,17 +456,18 @@ describe('reset', () => {
    */
   it('date l etat ou on le lui dit', () => {
     const tot = new BotEngine(100, 'idle')
-    tot.reset('alert', 0)
+    tot.reset('sleep', 0)
     const tard = new BotEngine(100, 'idle')
-    tard.reset('alert', 5)
-    // le "!" traverse : a la meme date absolue, l'un en est a 5 s et l'autre au debut
+    tard.reset('sleep', 5)
+    // la respiration du chat endormi : a la meme date absolue, l'un en est a
+    // 5 s de son cycle et l'autre au debut
     expect(tot.sample(5).bodyPath).not.toBe(tard.sample(5).bodyPath)
-    expect(tard.state).toBe('alert')
+    expect(tard.state).toBe('sleep')
   })
 
   it('laisse sample une fonction pure du temps', () => {
     const e = new BotEngine(100, 'idle')
-    e.reset('orbit', 0)
+    e.reset('chase', 0)
     const tot = e.sample(0.3).bodyPath
     e.sample(9)
     expect(e.sample(0.3).bodyPath).toBe(tot)
@@ -506,8 +533,8 @@ describe('changement d etat pendant un fondu', () => {
     const suite: Array<[StateId, number]> = [
       ['wide', 0.5],
       ['idle', 0.55],
-      ['egg', 0.6],
-      ['orbit', 0.65],
+      ['loaf', 0.6],
+      ['chase', 0.65],
       ['notify', 0.7]
     ]
     for (const [, at] of suite.slice(1)) {

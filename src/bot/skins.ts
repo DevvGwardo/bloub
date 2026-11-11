@@ -1,3 +1,4 @@
+import { CAT_PROFILES } from './cat'
 import { PROFILE_SAMPLES } from './profiles'
 import {
   hullOfCircles,
@@ -10,11 +11,9 @@ import {
 /**
  * Formes et couleurs proposees par le personnalisateur du bot.
  *
- * A la difference des silhouettes d'animation (`profiles.ts`), celles-ci ne sont
- * PAS relevees sur la video : elles sont construites analytiquement d'apres la
- * grille du personnalisateur d'origine. Deux sources distinctes, donc, et c'est
- * volontaire — les etats animes doivent rester fideles a la video, les formes de
- * base sont un choix d'utilisateur.
+ * La forme par defaut est le chat (`chat`). Les autres formes sont des
+ * alternatives geometriques construites analytiquement, pour jouer : elles ne
+ * remplacent le corps que sur les etats `baseBody`, jamais une pose narrative.
  */
 
 /**
@@ -25,6 +24,7 @@ import {
  * rendrait `radii` en lecture seule, alors que le moteur le passe tel quel.
  */
 export type ShapeId =
+  | 'chat'
   | 'cercle'
   | 'galet'
   | 'squircle'
@@ -77,6 +77,8 @@ const droplet = normalize(
 const capsule = profileFromPolygon(hullOfCircles(-0.42, 0, 0.62, 0.42, 0, 0.62), 0, 0)
 
 export const SHAPES: BotShape[] = [
+  // la forme par defaut : le chat analytique de `cat.ts`
+  { id: 'chat', radii: [...CAT_PROFILES.cat] },
   { id: 'cercle', radii: new Array(PROFILE_SAMPLES).fill(1) },
   { id: 'galet', radii: pebble },
   // 1.15 et pas 1.02 : sur une superellipse le rayon maximal est la diagonale,
@@ -94,7 +96,7 @@ export const SHAPES: BotShape[] = [
 // Map indexee par `string` et non par `ShapeId` : les appelants interrogent avec
 // une valeur relue du localStorage ou d'une prop, donc non validee.
 export const SHAPE_BY_ID = new Map<string, BotShape>(SHAPES.map((s) => [s.id, s]))
-export const DEFAULT_SHAPE = 'cercle'
+export const DEFAULT_SHAPE = 'chat'
 
 export type ColorId =
   | 'encre'
@@ -115,20 +117,20 @@ export interface BotColor {
   hex: string
 }
 
-/** Palette du personnalisateur d'origine. */
+/** Palette du chat. Valeurs choisies, pas echantillonnees sur une image. */
 export const COLORS: BotColor[] = [
-  { id: 'encre', hex: '#0a0a0c' },
-  { id: 'brun', hex: '#8b5e3c' },
-  { id: 'rouge', hex: '#e8483f' },
-  { id: 'orange', hex: '#f08a24' },
-  { id: 'ambre', hex: '#f0b429' },
-  { id: 'vert', hex: '#3ecf8e' },
-  { id: 'turquoise', hex: '#2fbfa0' },
-  { id: 'bleu', hex: '#3b93f0' },
-  { id: 'violet', hex: '#8b5cf6' },
-  { id: 'rose', hex: '#e152b0' },
-  { id: 'gris', hex: '#a3a3a3' },
-  { id: 'creme', hex: '#f1efe9' }
+  { id: 'encre', hex: '#232136' },
+  { id: 'brun', hex: '#a06a4c' },
+  { id: 'rouge', hex: '#e8654f' },
+  { id: 'orange', hex: '#f49a45' },
+  { id: 'ambre', hex: '#f2c14e' },
+  { id: 'vert', hex: '#6ec48a' },
+  { id: 'turquoise', hex: '#3fbfb2' },
+  { id: 'bleu', hex: '#5b8def' },
+  { id: 'violet', hex: '#9270e8' },
+  { id: 'rose', hex: '#e874a8' },
+  { id: 'gris', hex: '#a8a4b3' },
+  { id: 'creme', hex: '#f6f1e7' }
 ]
 
 export const COLOR_BY_ID = new Map<string, BotColor>(COLORS.map((c) => [c.id, c]))

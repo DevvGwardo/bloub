@@ -3,23 +3,22 @@ import { lerp } from './math'
 import type { EyeCfg } from './states'
 
 /**
- * Expression de repos du bot.
+ * Expression de repos du chat.
  *
- * Le visage ne tient qu'à deux gélules, donc tout se joue sur quatre leviers :
- * l'orientation de la tête, l'écart des yeux, leurs proportions, et
- * l'inclinaison propre de chaque œil. C'est ce dernier qui permet la colère et
- * la tristesse : elles demandent des inclinaisons EN MIROIR (les hauts qui
- * convergent ou divergent), impossible avec le seul roulis de tête qui incline
- * les deux yeux du même côté.
+ * Le visage ne tient qu'a deux ovales, donc tout se joue sur quatre leviers :
+ * l'orientation de la tete, l'ecart des yeux, leurs proportions, et
+ * l'inclinaison propre de chaque oeil. Ce dernier permet la colere et la
+ * tristesse, qui demandent des inclinaisons EN MIROIR (les hauts qui
+ * convergent ou divergent), impossible avec le seul roulis de tete qui incline
+ * les deux yeux du meme cote.
  *
- * Seul l'état de repos porte cette expression. Les états expressifs de la vidéo
- * (clin d'œil, yeux écarquillés, notification) gardent la leur : c'est elle
- * qu'on est venu reproduire.
+ * Seul l'etat de repos porte cette expression. Les etats expressifs (clin
+ * d'oeil, yeux ecarquilles, notification) gardent la leur : c'est leur pose qui
+ * raconte l'animation.
  *
- * Les amplitudes s'appuient sur bible-strong-avatar-lab, qui expose le même
- * modèle (tête X/Y/Z, largeur et hauteur par œil, écart, angle par œil) : chez
- * eux la largeur va de 0,8 à 2,7 fois le neutre, la hauteur de 0,3 à 1,5, et
- * les angles jusqu'à ±80°. On reste dans cette enveloppe.
+ * Les amplitudes sont larges mais contenues : les yeux du chat sont grands, et
+ * rien ici ne doit sortir de la silhouette. Les tests d'expressions le
+ * verifient sur la forme par defaut.
  */
 /** Enumeres pour que la couche i18n verifie leurs traductions a la compilation. */
 export type ExpressionId =
@@ -47,7 +46,7 @@ export interface BotExpression {
   eyes: [EyeCfg, EyeCfg]
 }
 
-/** `tilt` en degrés, positif = le haut de la gélule part vers la droite. */
+/** `tilt` en degres, positif = le haut de la gelule part vers la droite. */
 const eye = (w: number, h: number, tilt = 0, open = 1): EyeCfg => ({ w, h, tilt, open })
 
 /** Les deux yeux identiques, inclinaisons en miroir si `tilt` est fourni. */
@@ -58,7 +57,7 @@ const pair = (w: number, h: number, tilt = 0, open = 1): [EyeCfg, EyeCfg] => [
 
 export const EXPRESSIONS: BotExpression[] = [
   {
-    // la pose relevée image par image sur la vidéo de référence
+    // la pose de repos du chat : grands yeux doux, sous l'equateur
     id: 'neutre',
     gaze: { ...REST_GAZE },
     split: EYE_SPLIT,
@@ -66,104 +65,104 @@ export const EXPRESSIONS: BotExpression[] = [
   },
   {
     id: 'attentif',
-    gaze: { yaw: 4, pitch: 5, roll: -4 },
-    split: 16,
-    eyes: pair(0.21, 0.44)
+    gaze: { yaw: 5, pitch: -6, roll: -4 },
+    split: 23.5,
+    eyes: pair(0.35, 0.48)
   },
   {
     id: 'surpris',
-    gaze: { yaw: 3, pitch: -3, roll: 0 },
-    split: 19,
-    eyes: pair(0.45, 0.47)
+    gaze: { yaw: -2, pitch: -3, roll: 0 },
+    split: 25,
+    eyes: pair(0.44, 0.5)
   },
   {
     id: 'excite',
-    gaze: { yaw: 6, pitch: -14, roll: 0 },
-    split: 19.5,
-    eyes: pair(0.4, 0.56, -10)
+    gaze: { yaw: 4, pitch: -6, roll: 0 },
+    split: 26,
+    eyes: pair(0.36, 0.56, -10)
   },
   {
-    // yeux plissés en arc : les hauts convergent légèrement
+    // yeux plisses en arc : les hauts convergent legerement
     id: 'heureux',
-    gaze: { yaw: 5, pitch: 9, roll: 0 },
-    split: 17,
-    eyes: pair(0.27, 0.17, 14)
+    gaze: { yaw: 3, pitch: -4, roll: 0 },
+    split: 24,
+    eyes: pair(0.36, 0.15, 14)
   },
   {
     id: 'hilare',
-    gaze: { yaw: 4, pitch: 14, roll: 0 },
-    split: 18,
-    eyes: pair(0.34, 0.13, 20)
+    gaze: { yaw: 2, pitch: 4, roll: 0 },
+    split: 25,
+    eyes: pair(0.38, 0.13, 20)
   },
   {
-    // hauts des yeux qui convergent fort vers le centre + yeux étrécis
+    // hauts des yeux qui convergent fort vers le centre + yeux etrecis
     id: 'colere',
-    gaze: { yaw: 3, pitch: 7, roll: 0 },
-    split: 17,
+    gaze: { yaw: 0, pitch: -8, roll: 0 },
+    split: 23,
     eyes: pair(0.34, 0.15, 30)
   },
   {
     // l'inverse : les hauts divergent, et le regard tombe
     id: 'triste',
-    gaze: { yaw: 3, pitch: -13, roll: 0 },
-    split: 16,
-    eyes: pair(0.22, 0.4, -28)
+    gaze: { yaw: 0, pitch: -16, roll: 0 },
+    split: 22,
+    eyes: pair(0.24, 0.44, -28)
   },
   {
     id: 'effraye',
-    gaze: { yaw: 2, pitch: -20, roll: 0 },
-    split: 20.5,
-    eyes: pair(0.4, 0.6)
+    gaze: { yaw: 0, pitch: -18, roll: 0 },
+    split: 27,
+    eyes: pair(0.4, 0.62)
   },
   {
-    // un œil franchement plus fermé que l'autre
+    // un oeil franchement plus ferme que l'autre
     id: 'mefiant',
-    gaze: { yaw: 12, pitch: 6, roll: -6 },
-    split: 16,
-    eyes: [eye(0.21, 0.4), eye(0.22, 0.15)]
+    gaze: { yaw: 10, pitch: -6, roll: -6 },
+    split: 23,
+    eyes: [eye(0.24, 0.46), eye(0.3, 0.15, 8)]
   },
   {
-    // asymétrique sur les deux axes : tailles ET inclinaisons dépareillées.
-    // L'œil plissé est volontairement plat (rapport 1,6) : à un rapport proche
-    // de 1 il serait rond, et son inclinaison ne se verrait pas.
+    // asymetrique sur les deux axes : tailles ET inclinaisons depareillees.
+    // L'oeil plisse est volontairement tres plat (rapport 1,8) : a un rapport
+    // proche de 1 il serait rond, et son inclinaison ne se verrait pas.
     id: 'confus',
-    gaze: { yaw: -14, pitch: 3, roll: 8 },
-    split: 16.5,
-    eyes: [eye(0.2, 0.44, -18), eye(0.28, 0.17, 14)]
+    gaze: { yaw: -12, pitch: -4, roll: 7 },
+    split: 23.5,
+    eyes: [eye(0.22, 0.48, -18), eye(0.3, 0.17, 14)]
   },
   {
-    // la tête penche : c'est le roulis qui porte la curiosité
+    // la tete penche : c'est le roulis qui porte la curiosite
     id: 'curieux',
-    gaze: { yaw: 16, pitch: -9, roll: -15 },
-    split: 16.5,
-    eyes: [eye(0.24, 0.46, -8), eye(0.2, 0.38, -8)]
+    gaze: { yaw: 14, pitch: -8, roll: -14 },
+    split: 23,
+    eyes: [eye(0.28, 0.5, -8), eye(0.22, 0.42, -8)]
   },
   {
     id: 'fier',
-    gaze: { yaw: 5, pitch: 17, roll: 0 },
-    split: 17,
-    eyes: pair(0.3, 0.15, 18)
+    gaze: { yaw: 3, pitch: 14, roll: 0 },
+    split: 24,
+    eyes: pair(0.32, 0.15, 18)
   },
   {
     id: 'timide',
-    gaze: { yaw: -19, pitch: -14, roll: -7 },
-    split: 14,
-    eyes: pair(0.17, 0.3)
+    gaze: { yaw: -16, pitch: -14, roll: -6 },
+    split: 21,
+    eyes: pair(0.2, 0.34)
   },
   {
-    // fentes horizontales et regard qui part sur le côté
+    // fentes horizontales et regard qui part sur le cote
     id: 'blase',
-    gaze: { yaw: -22, pitch: 2, roll: 0 },
-    split: 16,
+    gaze: { yaw: -20, pitch: 1, roll: 0 },
+    split: 23,
     eyes: pair(0.3, 0.12)
   },
   {
-    // paupières à moitié tombées : on passe par `open`, donc l'écrasement
-    // vertical à l'écran, le même mécanisme que le clignement
+    // paupieres a moitie tombees : on passe par `open`, donc l'ecrasement
+    // vertical a l'ecran, le meme mecanisme que le clignement
     id: 'somnolent',
-    gaze: { yaw: 6, pitch: -9, roll: -3 },
-    split: 16,
-    eyes: pair(0.2, 0.42, 0, 0.42)
+    gaze: { yaw: 4, pitch: -12, roll: -3 },
+    split: 22,
+    eyes: pair(0.22, 0.44, 0, 0.42)
   }
 ]
 

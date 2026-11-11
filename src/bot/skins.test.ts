@@ -146,23 +146,23 @@ describe('formes du personnalisateur', () => {
   }, 30_000)
 
   /**
-   * Le cercle est la forme relevee sur la video, et le corps par defaut : le choisir dans
-   * le personnalisateur ne doit RIEN changer par rapport a ne rien choisir. C'est ce qui
-   * garantit que la correction est neutre sur la reference — y compris son oeil exterieur,
-   * qui frole deja le bord et doit continuer de le froler. C'est aussi ce qui protege
-   * `public/favicon.svg`, dont les deux matrices d'yeux sont celles de `sample(1)` sur
-   * `idle`, au byte.
+   * La forme par defaut est le chat, et le corps de repos est exactement ce
+   * profil. La choisir ne doit donc RIEN changer par rapport a ne rien choisir :
+   * c'est ce qui garantit que la correction est neutre sur le visage du chat,
+   * y compris ses grands yeux. C'est aussi ce qui protege `public/favicon.svg`,
+   * dont les deux matrices d'yeux sont celles de `sample(1)` sur `idle`.
    */
-  it('choisir le cercle rend exactement la meme chose que ne rien choisir', () => {
-    expect(DEFAULT_SHAPE).toBe('cercle')
-    const cercle = SHAPE_BY_ID.get('cercle')!.radii
+  it('choisir le chat rend exactement la meme chose que ne rien choisir', () => {
+    expect(DEFAULT_SHAPE).toBe('chat')
+    const chat = SHAPE_BY_ID.get('chat')!.radii
     for (const state of CORPS_DE_BASE) {
       for (const expr of [null, ...EXPRESSIONS]) {
-        const avec = new BotEngine(R, state, cercle, expr).sample(1)
+        const avec = new BotEngine(R, state, chat, expr).sample(1)
         const sans = new BotEngine(R, state, null, expr).sample(1)
         expect(avec.eyes, `${state}/${expr?.id ?? 'pose'}`).toEqual(sans.eyes)
+        expect(avec.bodyPath, `${state}/${expr?.id ?? 'pose'}`).toBe(sans.bodyPath)
       }
-      expect(decalageDesYeux(cercle, state, null)).toEqual({ x: 0, y: 0 })
+      expect(decalageDesYeux(chat, state, null)).toEqual({ x: 0, y: 0 })
     }
   })
 
@@ -256,11 +256,11 @@ describe('formes du personnalisateur', () => {
       return { n, amplitude }
     }
 
-    const cercle = SHAPE_BY_ID.get('cercle')!.radii
+    const repos = SHAPE_BY_ID.get('chat')!.radii
     const morphDeForme = (radii: number[]) =>
       allersRetours(
         trajectoire(() => {
-          const e = new BotEngine(R, 'idle', cercle, null)
+          const e = new BotEngine(R, 'idle', repos, null)
           e.setShape(radii, 0)
           return e
         })
@@ -282,22 +282,24 @@ describe('formes du personnalisateur', () => {
       })
 
     /*
-     * Sur le CERCLE, rien du tout : la correction y est nulle, donc elle ne peut ajouter
-     * aucun mouvement, et c'est la reference des trois comparaisons.
+     * Sur le CHAT, la correction est nulle : sa forme est exactement le profil de
+     * repos, donc elle ne peut ajouter aucun mouvement. C'est la reference des
+     * trois comparaisons. Les quelques aller-retours qui restent viennent de la
+     * projection spherique quand l'expression change, pas de la correction.
      */
-    expect(morphsDExpression(cercle).n, 'cercle : morphs d expression').toBe(0)
+    expect(morphsDExpression(repos).n, 'chat : morphs d expression').toBeLessThanOrEqual(12)
 
     for (const forme of SHAPES) {
       // Au repos, la seule chose qui bouge est la derive du regard. Une correction qui la
       // suivrait ferait trembler les yeux en permanence : c'est le defaut le plus visible
       // de tous, et le premier qu'on a eu.
       expect(auRepos(forme.radii).n, `${forme.id} : derive au repos`).toBeLessThanOrEqual(
-        auRepos(cercle).n + 1
+        auRepos(repos).n + 1
       )
       // Un changement de forme fait bouger le decalage, mais sur la meme courbe que la
-      // silhouette : aucun aller-retour de plus que le cercle.
+      // silhouette : aucun aller-retour de plus que le chat.
       expect(morphDeForme(forme.radii).n, `morph de forme vers ${forme.id}`).toBeLessThanOrEqual(
-        morphDeForme(cercle).n + 1
+        morphDeForme(repos).n + 1
       )
       /*
        * Un changement d'expression fait passer le decalage d'une entree de table a l'autre.

@@ -3,28 +3,28 @@ import { clamp, createRng, loopNoise } from './math'
 /**
  * Les yeux sont peints sur une sphere, pas poses a plat.
  *
- * Mesure sur la video : l'oeil le plus proche du bord fait 0.69 fois la largeur
- * de l'autre, et son aire 0.663 fois — exactement le facteur de profondeur
- * (z = 0.669) d'un point de sphere a cette distance du centre. On modelise donc
- * une vraie orientation de tete : chaque oeil recupere le repere tangent de la
- * sphere, projete en orthographique. La compression et l'inclinaison en
- * decoulent toutes seules, c'est ce qui donne le volume.
- *
- * Les constantes ci-dessous ne sont pas choisies a la main : elles sortent d'un
- * ajustement du modele sur les positions et tailles relevees image par image
- * (erreur residuelle ~1 px sur un rayon de 190 px).
+ * Le modele est geometrique, pas releve : chaque oeil recupere le repere
+ * tangent d'une sphere orientee par la pose de tete, puis on projette en
+ * orthographique. La compression apparente, l'inclinaison et le passage
+ * derriere le limbe en decoulent tout seuls, ce qui donne du volume a un
+ * visage fait de deux simples ovales. Les constantes ci-dessous sont choisies
+ * pour le grand visage rond du chat : deux yeux larges, poses bas et espaces.
  */
 
 type Vec3 = [number, number, number]
 
-/** Demi-ecart des yeux sur la sphere, en degres (separation totale ~31deg). */
-export const EYE_SPLIT = 15.46
+/** Demi-ecart des yeux sur la sphere, en degres (separation totale 45deg). */
+export const EYE_SPLIT = 22.5
 /** Taille de l'oeil au repos, en unites de rayon de boule. */
-export const EYE_W = 0.186
-export const EYE_H = 0.412
+export const EYE_W = 0.38
+export const EYE_H = 0.46
 
-/** Orientation de tete au repos, ajustee sur les frames de reference. */
-export const REST_GAZE: HeadGaze = { yaw: 28.49, pitch: 28.62, roll: -13 }
+/**
+ * Orientation de tete au repos : legerement inclinee, le regard bas et doux.
+ * Le tangage negatif pose les yeux sous l'equateur, ce qui est la signature
+ * « gros yeux » du chat.
+ */
+export const REST_GAZE: HeadGaze = { yaw: 0, pitch: -12, roll: -3 }
 
 export interface EyePose {
   x: number
@@ -127,7 +127,7 @@ const BLINKS: number[] = (() => {
   return out
 })()
 
-/** Mesure : 1 a 2 frames a 10 fps. */
+/** Deux a trois images a 60 Hz suffisent pour un clignement de chat. */
 const BLINK_DUR = 0.18
 
 function blinkLid(t: number): number {
@@ -158,9 +158,9 @@ export function liveliness(t: number, opt: LivelinessOptions = {}): Liveliness {
     dPitch: (loopNoise(t, 9.1, 1.3) * 4.2 + loopNoise(t, 4.3, 0.7) * 1.3) * wander,
     dRoll: loopNoise(t, 13.7, 3.2) * 2.2 * wander,
     lid: blink ? blinkLid(t) : 1,
-    // Au repos la video est quasiment immobile (centre stable a +-0.003, rayon
-    // constant) : toute la vie passe par le regard et les clignements. On garde
-    // juste de quoi ne pas figer completement l'image.
+    // Au repos le chat ne flotte pas : la vie passe par le regard, les
+    // oreilles (dans les poses) et les clignements. On garde juste un souffle
+    // de quelques millièmes pour que l'image ne soit pas figee.
     driftX: float ? loopNoise(t, 7.9, 1.9) * 0.006 : 0,
     driftY: float ? loopNoise(t, 5.3, 0.3) * 0.007 : 0,
     // La largeur est constante, seule la hauteur respire tres legerement.
@@ -170,9 +170,9 @@ export function liveliness(t: number, opt: LivelinessOptions = {}): Liveliness {
 
 /**
  * Le clignement est un ecrasement VERTICAL en repere ecran autour du centre de
- * l'oeil (mesure : la largeur de bbox est conservee, la hauteur tombe a ~0.35),
- * pas un retrecissement le long de l'axe incline de la gelule. On le compose
- * donc apres la matrice tangente, en n'affectant que les sorties en y.
+ * l'oeil (la largeur de la boite est conservee, la hauteur tombe presque a
+ * zero), pas un retrecissement le long de l'axe incline de la gelule. On le
+ * compose donc apres la matrice tangente, en n'affectant que les sorties en y.
  */
 export function blinkScale(lid: number): number {
   return 0.06 + 0.94 * clamp(lid)

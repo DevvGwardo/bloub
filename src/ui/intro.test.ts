@@ -209,7 +209,7 @@ describe('fluidite de l arrivee', () => {
     }
 
     const rond = trajectoire('cercle')
-    const goutte = trajectoire('goutte')
+    const goutte = trajectoire('capsule')
     let ecart = 0
     for (let i = 0; i < rond.length; i++) {
       if (Number.isNaN(rond[i]!) || Number.isNaN(goutte[i]!)) continue

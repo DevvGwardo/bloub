@@ -137,12 +137,12 @@ describe('lecteur hors ecran', () => {
    * L'image 0 est le PREMIER etat du montage, pas un repos qui morphe vers lui.
    *
    * Le lecteur etait monte sans prop `state`, donc le modele prenait son defaut `idle` et
-   * le moteur se construisait dessus : un montage commencant par l'orbite s'ouvrait sur une
-   * boule au repos qui morphait vers le triangle pendant 0,6 s. La lecture a l'ecran ne
+   * le moteur se construisait dessus : un montage commencant par la poursuite s'ouvrait sur une
+   * boule au repos qui morphait vers le chat etire pendant 0,6 s. La lecture a l'ecran ne
    * fait pas ca, elle amorce l'etat sur le bloc courant.
    */
   it('ouvre sur le premier etat du montage, sans morpher depuis le repos', async () => {
-    for (const debut of ['orbit', 'egg', 'hexagon'] as const) {
+    for (const debut of ['chase', 'loaf', 'stretch'] as const) {
       const blocs = [
         { state: debut, duration: 2 },
         { state: 'idle' as const, duration: 2 }

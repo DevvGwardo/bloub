@@ -1,9 +1,6 @@
 import {
   COMET_DOT,
   COMET_RIBBONS,
-  DOT_PEAK,
-  DOT_R,
-  DOT_X,
   NOTIF_ANGLE,
   NOTIF_DIST,
   NOTIF_MARGIN,
@@ -11,20 +8,14 @@ import {
   NOTIF_R,
   RINGS,
   SWOOSH,
+  THOUGHT_DOTS,
   particles,
   type ArcSpec,
   type DotRender
 } from './decor'
 import { EYE_H, EYE_SPLIT, EYE_W, REST_GAZE, type HeadGaze } from './face'
 import { TAU, clamp, easings } from './math'
-import {
-  circle,
-  hullOfCircles,
-  polyPath,
-  profileFromPolygon,
-  silhouette,
-  type Silhouette
-} from './shape'
+import { silhouette, type Silhouette } from './shape'
 
 export interface EyeCfg {
   /** largeur locale (axe court de la gelule), en unites de rayon de boule */
@@ -63,14 +54,15 @@ export interface Pose {
   dotsBehind: boolean
 }
 
-const pair = (w: number, h: number): [EyeCfg, EyeCfg] => [
-  { w, h, open: 1 },
-  { w, h, open: 1 }
+const pair = (w: number, h: number, open = 1): [EyeCfg, EyeCfg] => [
+  { w, h, open },
+  { w, h, open }
 ]
 
+/** Le chat au repos. Toutes les poses ci-dessous n'en changent qu'un morceau. */
 function base(over: Partial<Pose> = {}): Pose {
   return {
-    sil: circle(1),
+    sil: silhouette('cat'),
     offX: 0,
     offY: 0,
     gaze: { ...REST_GAZE },
@@ -86,63 +78,11 @@ function base(over: Partial<Pose> = {}): Pose {
   }
 }
 
-/* --------------------------------------------------- formes non radiales */
-
-/**
- * Barre du "!" vertical : enveloppe convexe de deux cercles.
- * Mesure : cercle haut (0, -0.505) r 0.132, cercle bas (0, +0.130) r 0.075,
- * flancs rectilignes. Elle est donc tronconique (rapport haut/bas 1.76).
- */
-const BAR_UPRIGHT_CY = -0.1875
-const BAR_UPRIGHT = profileFromPolygon(
-  hullOfCircles(0, -0.505, 0.132, 0, 0.13, 0.075),
-  0,
-  BAR_UPRIGHT_CY
-)
-
-/** Barre du "!" penche : capsule pure (largeur constante 0.269, longueur 0.776). */
-const BAR_ITALIC = profileFromPolygon(hullOfCircles(0, -0.2535, 0.1345, 0, 0.2535, 0.1345), 0, 0)
-
-const barUpright = (pose: Partial<Silhouette> = {}): Silhouette => ({
-  radii: [...BAR_UPRIGHT],
-  rot: 0,
-  cx: 0,
-  cy: BAR_UPRIGHT_CY,
-  sx: 1,
-  sy: 1,
-  ...pose
-})
-
-const barItalic = (pose: Partial<Silhouette> = {}): Silhouette => ({
-  radii: [...BAR_ITALIC],
-  rot: 0,
-  cx: 0,
-  cy: 0,
-  sx: 1,
-  sy: 1,
-  ...pose
-})
-
-/**
- * Le point du "!" penche n'est pas un disque : c'est une goutte, bout rond
- * (r 0.118) du cote de la barre et pointe effilee a l'oppose, longueur 0.300
- * dans l'axe du glyphe. Centree sur le barycentre du bout rond.
- */
-const TEAR = polyPath(hullOfCircles(0, 0, 0.118, 0, 0.172, 0.012))
-
-/**
- * Le triangle ne tourne pas sur lui-meme : son centre decrit un cercle de
- * rayon 0.213 autour de l'origine (mesure). C'est ce decalage qui donne
- * l'impression qu'il bascule au lieu de pivoter sur place.
- */
-const TRI_ORBIT = 0.213
-
-function spinningTriangle(rot: number): Silhouette {
-  return silhouette('triangle', {
-    rot,
-    cx: -TRI_ORBIT * Math.sin(rot),
-    cy: TRI_ORBIT * Math.cos(rot)
-  })
+/** Onde de pulsation qui parcourt les trois points de gauche a droite. */
+function dotPulse(t: number, index: number): number {
+  const p = ((((t - index * 0.5) / 1.5) % 1) + 1) % 1
+  const k = p < 0.5 ? 0.5 - 0.5 * Math.cos(p * TAU) : 0
+  return clamp(k * 2)
 }
 
 /* ------------------------------------------------------------------ etats */
@@ -156,12 +96,12 @@ export type StateId =
   | 'notify'
   | 'exclaim'
   | 'sleep'
-  | 'egg'
-  | 'hexagon'
-  | 'play'
-  | 'orbit'
-  | 'burst'
-  | 'comet'
+  | 'loaf'
+  | 'stretch'
+  | 'swat'
+  | 'chase'
+  | 'puff'
+  | 'pounce'
   /** transition d'interface, pas une animation du catalogue : hors `SEQUENCE` */
   | 'swirl'
 
@@ -171,36 +111,29 @@ export interface StateDef {
   duration: number
   /**
    * duree en dessous de laquelle l'animation est coupee avant d'aboutir : le
-   * "!" ne revient pas, le corps reste eclate. Elle se lit dans les constantes
-   * de `pose` ci-dessous, elle ne se choisit pas. Absente = l'etat ignore le
-   * temps ou boucle, n'importe quelle duree lui va (voir `MIN_BLOCK`).
+   * chat ne s'est pas encore releve, le corps reste tasse. Elle se lit dans les
+   * constantes de `pose` ci-dessous, elle ne se choisit pas. Absente = l'etat
+   * ignore le temps ou boucle, n'importe quelle duree lui va (voir `MIN_BLOCK`).
    */
   minDuration?: number
   /** duree du morph d'entree */
   morph: number
-  /** true = l'entree est masquee par un clignement, comme dans la video */
+  /** true = l'entree est masquee par un clignement */
   blinkIn: boolean
   /**
    * true = le corps est la silhouette "au repos", donc remplacable par la forme
-   * choisie dans le personnalisateur. Les etats qui dessinent leur propre forme
-   * (le "!", les points, l'oeuf, le triangle...) valent false : c'est cette forme
-   * la qui EST l'animation.
+   * choisie dans le personnalisateur. Les etats qui dessinent leur propre pose
+   * (le chat tasse, etire, en chasse, la boule du bond...) valent false : c'est
+   * cette pose-la qui EST l'animation.
    */
   baseBody: boolean
   /**
    * true = l'etat porte le visage "au repos", donc remplacable par l'expression
-   * choisie. Seul `idle` : les autres etats a visage ont une expression relevee
-   * sur la video, c'est precisement ce qu'on reproduit.
+   * choisie. Seul `idle` : les autres etats a visage ont leur propre expression,
+   * c'est precisement ce qu'on vient voir.
    */
   baseFace: boolean
   pose(local: number): Pose
-}
-
-/** Onde de pulsation qui parcourt les trois points de gauche a droite. */
-function dotPulse(t: number, index: number): number {
-  const p = ((((t - index * 0.5) / 1.5) % 1) + 1) % 1
-  const k = p < 0.5 ? 0.5 - 0.5 * Math.cos(p * TAU) : 0
-  return clamp(k * 2)
 }
 
 export const STATES: StateDef[] = [
@@ -219,26 +152,22 @@ export const STATES: StateDef[] = [
     duration: 2.6,
     morph: 0.4,
     baseFace: false,
-    baseBody: false,
+    baseBody: true,
     blinkIn: true,
     pose: (t) => {
-      const mid = dotPulse(t, 1)
-      // Les points lateraux sortent des flancs de la boule : dans la video ils
-      // restent fusionnes avec elle 1-2 frames avant de se detacher.
-      const emerge = 0.3 + 0.7 * easings.easeOutCubic(clamp(t / 0.3))
+      const pop = 1 + 0.18 * Math.sin(clamp(t / 2.2) * Math.PI)
       return base({
-        // la boule DEVIENT le point du milieu : le morph reste continu
-        sil: circle(DOT_R * (1 + (DOT_PEAK - 1) * mid), { cx: DOT_X[1]! }),
-        eyeAlpha: 0,
-        dots: [0, 2].map((i) => {
-          const k = dotPulse(t, i)
-          return {
-            x: DOT_X[i]! * emerge,
-            y: 0,
-            r: DOT_R * (1 + (DOT_PEAK - 1) * k),
-            opacity: 0.55 + 0.45 * k
-          }
-        })
+        gaze: { yaw: 8, pitch: 11, roll: 4 },
+        split: 22.5,
+        eyes: pair(EYE_W * 0.92, EYE_H * 0.94),
+        // Trois petites idees qui s'allument l'une apres l'autre au-dessus de
+        // l'oreille droite. Ce sont des points du decor, pas le corps.
+        dots: THOUGHT_DOTS.map((p, i) => ({
+          x: p.x,
+          y: p.y - 0.03 * dotPulse(t, i),
+          r: p.r * (0.75 + 0.35 * dotPulse(t, i)) * pop,
+          opacity: 0.5 + 0.5 * dotPulse(t, i)
+        }))
       })
     }
   },
@@ -247,18 +176,18 @@ export const STATES: StateDef[] = [
     id: 'wink',
     duration: 1.6,
     morph: 0.3,
-    blinkIn: true,
     baseFace: false,
     baseBody: true,
+    blinkIn: true,
     pose: () =>
       base({
-        gaze: { yaw: -5.37, pitch: 4.55, roll: 6.7 },
-        split: 16.25,
+        gaze: { yaw: 4, pitch: -9, roll: 5 },
+        split: 23.2,
         // L'oeil ferme n'est pas l'oeil ouvert ecrase : c'est un tiret
-        // horizontal PLUS LARGE que l'oeil ouvert (0.447 contre 0.236).
+        // horizontal, plus large que haut, comme un sourire.
         eyes: [
-          { w: 0.236, h: 0.464, open: 1 },
-          { w: 0.447, h: 0.089, open: 1 }
+          { w: EYE_W, h: EYE_H, open: 1 },
+          { w: 0.32, h: 0.1, open: 1 }
         ]
       })
   },
@@ -267,49 +196,35 @@ export const STATES: StateDef[] = [
     id: 'wide',
     duration: 1.8,
     morph: 0.55,
-    blinkIn: true,
     baseFace: false,
     baseBody: true,
+    blinkIn: true,
     pose: () =>
       base({
-        gaze: { yaw: 6.92, pitch: -21.96, roll: 11.6 },
-        split: 18.43,
-        eyes: pair(0.356, 0.875)
+        gaze: { yaw: -2, pitch: -7, roll: 0 },
+        split: 24.5,
+        eyes: pair(0.42, 0.56)
       })
   },
 
   {
     id: 'alert',
-    duration: 2.4,
-    // le "!" revient en place a 1.6 + 0.4
-    minDuration: 2,
+    duration: 1.8,
     morph: 0.45,
     baseFace: false,
     baseBody: false,
     blinkIn: false,
     pose: (t) => {
-      // Course mesuree : -0.087 -> +0.732 en 1.5 s, ease-in-out, micro-overshoot.
-      const p = clamp(t / 1.5)
-      const travel = easings.easeInOutCubic(p) * 0.82 - 0.087
-      const back = t > 1.6 ? clamp((t - 1.6) / 0.4) : 0
-      const x = travel * (1 - back) + 0.1 * back
-      // Vibration secondaire a 2.5 Hz, barre et point en opposition de phase.
-      const buzz = Math.sin(t * 2.5 * TAU) * 0.005
-      const tilt = (17.7 * Math.PI) / 180
+      // Le chat se redresse d'un coup, oreilles hautes, puis retombe.
+      const p = easings.easeOutCubic(clamp(t / 0.32))
+      const settle = easings.easeInOutCubic(clamp((t - 0.9) / 0.7))
+      const up = p * (1 - settle)
       return base({
-        sil: barItalic({ rot: tilt, cx: x, cy: -0.325 - buzz }),
-        eyeAlpha: 0,
-        dots: [
-          {
-            // le point suit l'axe du glyphe, a 0.580 du centre de la barre
-            x: x - Math.sin(tilt) * 0.58,
-            y: -0.325 + Math.cos(tilt) * 0.58 + buzz * 2.8,
-            r: 0.118,
-            d: TEAR,
-            rot: (tilt * 180) / Math.PI,
-            opacity: 1
-          }
-        ]
+        sil: silhouette('perk', { sy: 0.94 + 0.1 * up }),
+        offY: -0.055 * up,
+        gaze: { yaw: 7, pitch: -4, roll: 0 },
+        split: 24,
+        eyes: pair(0.4, 0.54)
       })
     }
   },
@@ -318,20 +233,20 @@ export const STATES: StateDef[] = [
     id: 'notify',
     duration: 2.2,
     morph: 0.5,
-    blinkIn: true,
     baseFace: false,
     baseBody: true,
+    blinkIn: true,
     pose: (t) => {
-      // Pop du point bleu : pic a +14 % vers 0.3 s puis stabilisation.
+      // Pop de la pastille : pic a +14 % vers 0,3 s puis stabilisation.
       const p = clamp(t / 0.45)
       const pop = 1 + (NOTIF_POP - 1) * Math.sin(p * Math.PI) * (1 - p * 0.35)
       const r = NOTIF_R * (p < 1 ? pop : 1)
       const a = (NOTIF_ANGLE * Math.PI) / 180
       return base({
         // le regard part a l'oppose de la pastille
-        gaze: { yaw: -21.94, pitch: -5.82, roll: -12.2 },
-        split: 18.89,
-        eyes: pair(0.505, 0.498),
+        gaze: { yaw: -18, pitch: -4, roll: -6 },
+        split: 23.5,
+        eyes: pair(0.36, 0.42),
         notif: {
           x: Math.cos(a) * NOTIF_DIST,
           y: Math.sin(a) * NOTIF_DIST,
@@ -344,83 +259,110 @@ export const STATES: StateDef[] = [
 
   {
     id: 'exclaim',
-    duration: 2,
-    morph: 0.45,
+    duration: 1.9,
+    morph: 0.4,
     baseFace: false,
     baseBody: false,
     blinkIn: false,
-    pose: () =>
-      base({
-        sil: barUpright(),
-        eyeAlpha: 0,
-        dots: [{ x: -0.012, y: 0.526, r: 0.113, opacity: 1 }]
+    pose: (t) => {
+      // Sursaut : le chat se tasse puis s'etire, sans jamais depasser le cadre.
+      const kick = Math.sin(clamp(t / 0.85) * Math.PI)
+      return base({
+        sil: silhouette('cat', {
+          sx: 1 - 0.06 * kick,
+          sy: 1 + 0.14 * kick
+        }),
+        gaze: { yaw: 0, pitch: 3, roll: 0 },
+        split: 25,
+        eyes: pair(0.42, 0.54)
       })
+    }
   },
 
   {
     id: 'sleep',
-    duration: 2.4,
+    duration: 2.6,
     morph: 0.5,
     baseFace: false,
     baseBody: false,
     blinkIn: false,
     pose: (t) =>
       base({
-        // Rebond vertical mesure : +-0.19 autour de +0.11, periode 0.6 s.
-        sil: circle(0.1585, { cy: 0.11 + Math.sin(t * (TAU / 0.6)) * 0.19 }),
-        eyeAlpha: 0
+        // respire lentement, tasse en pain de chat
+        sil: silhouette('squish', {
+          sx: 1 + 0.008 * Math.sin(t * (TAU / 2.4)),
+          sy: 1 + 0.014 * Math.sin(t * (TAU / 2.4))
+        }),
+        gaze: { yaw: 0, pitch: -14, roll: 4 },
+        split: 21,
+        // deux traits fermes, pas un ecrasement de l'oeil ouvert
+        eyes: pair(0.28, 0.085)
       })
   },
 
   {
-    id: 'egg',
+    id: 'loaf',
+    duration: 2,
+    morph: 0.45,
+    baseFace: false,
+    baseBody: false,
+    blinkIn: true,
+    pose: (t) =>
+      base({
+        sil: silhouette('squish', {
+          sy: 1 + 0.01 * Math.sin(t * (TAU / 2))
+        }),
+        gaze: { yaw: -8, pitch: -11, roll: -4 },
+        split: 22,
+        // paupieres basses : on passe par `open`, donc l'ecrasement vertical
+        eyes: pair(0.3, 0.36, 0.45)
+      })
+  },
+
+  {
+    id: 'stretch',
     duration: 1.8,
     morph: 0.4,
     baseFace: false,
     baseBody: false,
     blinkIn: true,
-    pose: () =>
-      base({
-        sil: silhouette('egg'),
-        gaze: { yaw: 19.97, pitch: 26.01, roll: -17.1 },
-        // les yeux se resserrent comme le corps
-        split: 11.07,
-        eyes: pair(0.164, 0.385)
+    pose: (t) => {
+      const up = easings.easeOutCubic(clamp(t / 0.65))
+      const down = easings.easeInOutCubic(clamp((t - 1.05) / 0.6))
+      const k = up * (1 - down)
+      return base({
+        sil: silhouette('perk', {
+          sx: 1 - 0.05 * k,
+          sy: 1 + 0.11 * k
+        }),
+        offY: -0.04 * k,
+        gaze: { yaw: 3, pitch: 16, roll: 0 },
+        split: 21,
+        // yeux plisses de l'etirement
+        eyes: pair(0.3, 0.16, 0.55)
       })
+    }
   },
 
   {
-    id: 'hexagon',
-    duration: 1.6,
-    morph: 0.4,
-    baseFace: false,
-    baseBody: false,
-    blinkIn: true,
-    pose: () =>
-      base({
-        sil: silhouette('hexagon'),
-        gaze: { yaw: 23.11, pitch: 24.42, roll: -13.3 },
-        split: 13.37,
-        eyes: pair(0.177, 0.411)
-      })
-  },
-
-  {
-    id: 'play',
+    id: 'swat',
     duration: 2,
     morph: 0.5,
     baseFace: false,
     baseBody: false,
     blinkIn: true,
     pose: (t) => {
-      // Le triangle reste quasi immobile pendant que le bouquet le traverse.
       const fade = clamp(t / 0.35) * clamp((2.2 - t) / 0.5)
+      const swipe = Math.sin(clamp(t / 1.1) * Math.PI)
       return base({
-        sil: spinningTriangle(0),
+        sil: silhouette('tilt', {
+          rot: -0.1 + 0.08 * swipe,
+          cx: 0.06 * swipe
+        }),
         gaze: { yaw: 12, pitch: -8, roll: -6 },
-        split: 15,
-        eyes: pair(0.18, 0.34),
-        // le bouquet balaie de la droite vers la gauche par-dessus le triangle
+        split: 23,
+        eyes: pair(0.32, 0.4),
+        // le bouquet balaie de la droite vers la gauche par-dessus le chat
         arcs: SWOOSH.map((s, i) => ({
           id: `sw${i}`,
           seed: { ...s, cx: 0.45 - t * 0.42 },
@@ -432,41 +374,36 @@ export const STATES: StateDef[] = [
   },
 
   {
-    id: 'orbit',
+    id: 'chase',
     duration: 3.4,
-    // le corps a fini de se relacher du triangle vers la boule a 1.6 + 0.9
+    // le chat a fini de se remettre de sa course a 1.6 + 0.9
     minDuration: 2.5,
     morph: 0.6,
     baseFace: false,
     baseBody: false,
     blinkIn: false,
     pose: (t) => {
-      // Rotation mesuree : rampe sur 0.35 s puis 1.25 tour/s (sens antihoraire).
+      // Rampe douce puis demi-tour complet : le chat tourne sur lui-meme en
+      // suivant les anneaux, comme s'il cherchait sa queue.
       const ramp = easings.easeInOutCubic(clamp(t / 0.35))
-      const rot = -TAU * 1.25 * t * ramp
-      // Le corps se relache du triangle vers la boule pendant l'orbite.
-      const back = easings.easeInOutCubic(clamp((t - 1.6) / 0.9))
-      const tri = spinningTriangle(rot)
-      const ball = circle(1, { rot })
+      const rot = -TAU * 1.1 * t * ramp
+      const settle = easings.easeInOutCubic(clamp((t - 1.6) / 0.9))
+      const body = silhouette('cat', { rot })
       const sil: Silhouette = {
-        radii: tri.radii.map((r, i) => r + (ball.radii[i]! - r) * back),
-        rot,
-        cx: tri.cx * (1 - back),
-        cy: tri.cy * (1 - back),
-        sx: 1,
-        sy: 1
+        ...body,
+        sx: 1 - 0.03 * settle,
+        sy: 1 + 0.03 * settle
       }
       const fade = clamp(t / 0.8) * clamp((3.6 - t) / 0.9)
       return base({
         sil,
-        // les yeux filent autour de la sphere ~3x plus vite que la silhouette
         gaze: {
-          yaw: REST_GAZE.yaw + Math.sin(t * 6.5) * 65 * (1 - back),
-          pitch: -4 + back * 32,
-          roll: -13
+          yaw: REST_GAZE.yaw + Math.sin(t * 5.2) * 22 * (1 - settle),
+          pitch: -6 + 10 * settle,
+          roll: -6
         },
-        eyes: pair(0.18, 0.34 + back * 0.07),
-        // les anneaux entrent un par un sur 0.8 s
+        split: 23,
+        eyes: pair(0.32, 0.42 + 0.04 * settle),
         arcs: RINGS.map((s, i) => ({
           id: `rg${i}`,
           seed: s,
@@ -481,19 +418,16 @@ export const STATES: StateDef[] = [
     /**
      * Entree dans la vue des reglages.
      *
-     * SEUL etat qui n'est pas releve sur la video : il est CHOISI, comme la
-     * couleur `--ink`. Il emprunte le vocabulaire d'`orbit` — les memes anneaux,
-     * avec leurs parametres mesures — mais coupe court : 1 s au lieu de 3,4, la
-     * moitie des anneaux, et aucun triangle.
+     * SEUL etat qui n'est pas une animation du catalogue : il est CHOISI. Il
+     * emprunte le vocabulaire de `chase` — les memes anneaux — mais coupe court :
+     * 1 s au lieu de 3,4, la moitie des anneaux.
      *
      * Les deux drapeaux a `true` sont tout l'interet de cet etat :
      *
      * - `baseBody` laisse la forme choisie remplacer le corps, donc la vue peut
-     *   imposer le cercle et le galet ou la goutte y MORPHENT au lieu de sauter ;
+     *   imposer le chat ou une autre forme et elles y MORPHENT au lieu de sauter ;
      * - `baseFace` fait porter le visage de repos, donc le suivi du curseur
-     *   s'applique des cette entree. Un etat qui aurait sa propre pose de regard
-     *   (comme `orbit`) rendrait la main a l'etat suivant en pleine course, et
-     *   les yeux sauteraient d'un coup a la reprise.
+     *   s'applique des cette entree.
      *
      * Il n'est volontairement PAS dans `SEQUENCE` : ce n'est pas une animation du
      * catalogue, c'est une transition d'interface.
@@ -506,38 +440,36 @@ export const STATES: StateDef[] = [
     morph: 0.3,
     baseFace: true,
     baseBody: true,
-    // le morph de forme est masque par un clignement, comme partout ailleurs
     blinkIn: true,
     pose: (t) =>
       base({
-        // trois anneaux sur les six d'`orbit` : la moitie du bouquet suffit a le
-        // reconnaitre, et c'est autant d'arcs en moins a rasteriser par image
+        // trois anneaux sur les six de `chase`
         arcs: RINGS.slice(0, 3).map((s, i) => ({
           id: `sw${i}`,
           seed: s,
           t,
-          // ils entrent l'un apres l'autre puis s'effacent avant la fin du bloc,
-          // pour que la reprise au repos se fasse sur une image deja propre
           opacity: clamp((t - i * 0.06) / 0.14) * clamp((1.22 - t) / 0.34)
         }))
       })
   },
 
   {
-    id: 'burst',
+    id: 'puff',
     duration: 2.6,
-    // le corps est recompose a 1.7 + 0.7
+    // le chat est recompose a 1.7 + 0.7
     minDuration: 2.4,
     morph: 0.4,
     baseFace: false,
     baseBody: false,
     blinkIn: false,
     pose: (t) => {
-      // Effondrement mesure : 1.0 -> 0.166 en 0.7 s, ease-out, sans rebond.
-      const collapse = 1 - 0.834 * easings.easeOutQuint(clamp(t / 0.7))
+      // Le chat gonfle puis s'effondre en une petite boule, avant de revenir.
+      const puff = 1 + 0.12 * Math.sin(clamp(t / 0.55) * Math.PI)
+      const collapse = 1 - 0.7 * easings.easeOutQuint(clamp(t / 0.7))
       const regrow = easings.easeOutQuint(clamp((t - 1.7) / 0.7))
+      const k = collapse + (1 - collapse) * regrow
       return base({
-        sil: circle(collapse + (1 - collapse) * regrow),
+        sil: silhouette('cat', { sx: k * puff, sy: k * puff }),
         eyeAlpha: clamp((t - 1.85) / 0.4),
         dots: particles(t, 1),
         dotsBehind: true
@@ -546,26 +478,28 @@ export const STATES: StateDef[] = [
   },
 
   {
-    id: 'comet',
+    id: 'pounce',
     duration: 2.4,
-    // le point se recompose a 1.85 + 0.6 = 2.45, soit 0.05 s apres la coupe de
-    // la video : ce reliquat se termine pendant le fondu suivant, comme dans la
-    // reference. On ne descend donc pas sous la duree mesuree.
+    // le chat se recompose a 1.85 + 0.6 = 2.45
     minDuration: 2.4,
     morph: 0.45,
     baseFace: false,
     baseBody: false,
     blinkIn: false,
     pose: (t) => {
-      const collapse = 1 - (1 - COMET_DOT) * easings.easeOutQuint(clamp(t / 0.55))
+      const crouch = 1 - (1 - COMET_DOT) * easings.easeOutQuint(clamp(t / 0.55))
       const regrow = easings.easeOutQuint(clamp((t - 1.85) / 0.6))
+      const k = crouch + (1 - crouch) * regrow
       const fade = clamp((t - 0.15) / 0.25) * clamp((1.95 - t) / 0.3)
       return base({
-        // Le point derive de 0.035 vers le bas puis remonte (wobble mesure).
-        sil: circle(collapse + (1 - collapse) * regrow, {
-          cy: Math.sin(clamp(t / 1.7) * Math.PI) * 0.035
+        // petit balancement vertical du bond
+        sil: silhouette('squish', {
+          sx: k,
+          sy: k,
+          cy: Math.sin(clamp(t / 1.7) * Math.PI) * 0.03
         }),
         eyeAlpha: clamp((t - 2) / 0.35),
+        // la trainee tourbillonne derriere le chat
         arcs: COMET_RIBBONS.map((s, i) => ({ id: `cm${i}`, seed: s, t, opacity: fade }))
       })
     }
@@ -574,7 +508,6 @@ export const STATES: StateDef[] = [
 
 export const STATE_BY_ID = new Map(STATES.map((s) => [s.id, s]))
 
-/** Ordre de lecture de la sequence complete, calque sur la video de reference. */
 /**
  * Date, en temps local, ou chaque etat est le plus lisible : c'est la pose que
  * montrent les vignettes et la planche. Rendu deterministe, donc comparable
@@ -585,19 +518,20 @@ export const POSES: Record<StateId, number> = {
   thinking: 1.1,
   wink: 0.8,
   wide: 0.8,
-  alert: 0.75,
+  alert: 0.6,
   notify: 0.9,
-  exclaim: 0.8,
-  sleep: 0.45,
-  egg: 0.8,
-  hexagon: 0.8,
-  play: 0.9,
-  orbit: 1.2,
+  exclaim: 0.7,
+  sleep: 1.2,
+  loaf: 0.9,
+  stretch: 0.7,
+  swat: 0.9,
+  chase: 1.2,
   swirl: 0.5,
-  burst: 0.45,
-  comet: 1.15
+  puff: 0.45,
+  pounce: 1.15
 }
 
+/** Ordre de lecture de la sequence complete : une petite histoire de chat. */
 export const SEQUENCE: StateId[] = [
   'idle',
   'thinking',
@@ -607,10 +541,10 @@ export const SEQUENCE: StateId[] = [
   'notify',
   'exclaim',
   'sleep',
-  'egg',
-  'hexagon',
-  'play',
-  'orbit',
-  'burst',
-  'comet'
+  'loaf',
+  'stretch',
+  'swat',
+  'chase',
+  'puff',
+  'pounce'
 ]

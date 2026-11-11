@@ -61,11 +61,11 @@ describe('durees', () => {
     expect(clampDuration('idle', -5)).toBe(MIN_BLOCK)
   })
 
-  it('respecte la mesure des etats qui ont besoin d aboutir', () => {
-    // le "!" revient a 2.0, le corps se recompose a 2.4
-    expect(minDurationOf('alert')).toBe(2)
-    expect(minDurationOf('burst')).toBe(2.4)
-    expect(clampDuration('orbit', 1)).toBe(2.5)
+  it('respecte la duree des etats qui ont besoin d aboutir', () => {
+    // le herissement se recompose a 2.4, le bond a 2.45
+    expect(minDurationOf('puff')).toBe(2.4)
+    expect(minDurationOf('pounce')).toBe(2.4)
+    expect(clampDuration('chase', 1)).toBe(2.5)
     // un etat qui ignore le temps n a que le plancher
     expect(minDurationOf('idle')).toBe(MIN_BLOCK)
   })
@@ -90,7 +90,7 @@ describe('lecture', () => {
     blocks: [
       { state: 'idle', duration: 2 },
       { state: 'wink', duration: 1 },
-      { state: 'egg', duration: 3 }
+      { state: 'loaf', duration: 3 }
     ]
   }
 
@@ -118,9 +118,9 @@ describe('lecture', () => {
 
   it('deplace un bloc sans toucher la liste d origine', () => {
     const blocks = cycle.blocks
-    expect(moveBlock(blocks, 0, 2).map((b) => b.state)).toEqual(['wink', 'egg', 'idle'])
-    expect(moveBlock(blocks, 2, 0).map((b) => b.state)).toEqual(['egg', 'idle', 'wink'])
-    expect(blocks.map((b) => b.state)).toEqual(['idle', 'wink', 'egg'])
+    expect(moveBlock(blocks, 0, 2).map((b) => b.state)).toEqual(['wink', 'loaf', 'idle'])
+    expect(moveBlock(blocks, 2, 0).map((b) => b.state)).toEqual(['loaf', 'idle', 'wink'])
+    expect(blocks.map((b) => b.state)).toEqual(['idle', 'wink', 'loaf'])
   })
 })
 
@@ -140,7 +140,7 @@ describe('relecture du stockage', () => {
 
   it('ramene les durees aberrantes dans leurs bornes', () => {
     const raw = '[{"id":"c1","name":"A","blocks":[{"state":"idle","duration":-4},' +
-      '{"state":"egg","duration":9999}]}]'
+      '{"state":"loaf","duration":9999}]}]'
     expect(parseCycles(raw)[0]!.blocks.map((b) => b.duration)).toEqual([MIN_BLOCK, MAX_BLOCK])
   })
 
@@ -148,7 +148,7 @@ describe('relecture du stockage', () => {
     expect(parseCycles('[{"id":"c1","name":"A","blocks":[]}]')).toEqual([])
     expect(parseCycles('[{"id":"c1","blocks":[{"state":"idle","duration":2}]}]')).toEqual([])
     const doublon = '[{"id":"c1","name":"A","blocks":[{"state":"idle","duration":2}]},' +
-      '{"id":"c1","name":"B","blocks":[{"state":"egg","duration":2}]}]'
+      '{"id":"c1","name":"B","blocks":[{"state":"loaf","duration":2}]}]'
     expect(parseCycles(doublon).map((c) => c.name)).toEqual(['A'])
   })
 
@@ -186,10 +186,10 @@ describe('relecture du stockage', () => {
 
   it('borne aussi l ajout depuis l editeur, pas seulement la relecture', () => {
     let blocs = Array.from({ length: MAX_BLOCS }, () => makeBlock('idle'))
-    expect(blocksWith(blocs, 'egg')).toHaveLength(MAX_BLOCS)
+    expect(blocksWith(blocs, 'loaf')).toHaveLength(MAX_BLOCS)
     // et il reste possible d'ajouter juste en dessous de la borne
     blocs = blocs.slice(0, MAX_BLOCS - 1)
-    expect(blocksWith(blocs, 'egg')).toHaveLength(MAX_BLOCS)
+    expect(blocksWith(blocs, 'loaf')).toHaveLength(MAX_BLOCS)
   })
 
   it('borne le nombre de montages relus', () => {
