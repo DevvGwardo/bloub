@@ -4,9 +4,12 @@ import { EXPRESSIONS, EXPRESSION_BY_ID, type ExpressionId } from '@/bot/expressi
 import { SHAPE_BY_ID } from '@/bot/skins'
 import { STATE_BY_ID } from '@/bot/states'
 import {
+  AIM_IDLE,
+  followAim,
   HUMEURS,
   lookTarget,
   PITCH,
+  PITCH_MAX,
   SPIN,
   TOUR_TIME,
   tourLook,
@@ -56,6 +59,58 @@ describe('cible de regard', () => {
   it('fond le tour a mesure que l arrivee se fait', () => {
     expect(lookTarget(vise({ tour: 0.5 })).spin).toBe(SPIN / 2)
     expect(lookTarget(vise({ tour: 1 })).spin).toBe(0)
+  })
+})
+
+describe('pointeur : butee et relachement', () => {
+  it('borne la visee, meme si le pointeur sort de la fenetre', () => {
+    // `lookTarget` recoit une position de pointeur normalisee par une demi-fenetre,
+    // mais rien ne garantit qu'elle reste dans [-1, 1] : un ecran tres large, un
+    // evenement de synthese ou une boite nulle peuvent la faire deborder. La
+    // butee doit donc voyager avec la regle qui produit les angles, sinon les
+    // yeux passent derriere le limbe.
+    const extreme = lookTarget(vise({ nx: 4, ny: -7, tour: 3 }))
+    expect(extreme.yaw).toBe(-TURN + YAW_MAX)
+    expect(extreme.pitch).toBe(PITCH + PITCH_MAX)
+    expect(extreme.mix).toBe(1)
+    expect(extreme.spin).toBe(0)
+
+    const oppose = lookTarget(vise({ nx: -4, ny: 7, tour: -2 }))
+    expect(oppose.yaw).toBe(-TURN - YAW_MAX)
+    expect(oppose.pitch).toBe(PITCH - PITCH_MAX)
+    expect(oppose.mix).toBe(0)
+  })
+
+  it('suit le pointeur tant qu il vient de bouger', () => {
+    expect(followAim({ nx: 0.5, ny: -0.25, movedAt: 10 }, 10.5, 1)).toEqual({
+      nx: 0.5,
+      ny: -0.25,
+      tour: 1,
+      pointer: true
+    })
+  })
+
+  it('revient au centre apres quelques secondes d immobilite', () => {
+    const encore = followAim({ nx: 0.8, ny: 0.4, movedAt: 10 }, 10 + AIM_IDLE - 0.01, 1)
+    expect(encore.pointer).toBe(true)
+    expect(encore.nx).toBe(0.8)
+
+    const oublie = followAim({ nx: 0.8, ny: 0.4, movedAt: 10 }, 10 + AIM_IDLE + 0.01, 1)
+    expect(oublie).toEqual({ nx: 0, ny: 0, tour: 1, pointer: false })
+  })
+
+  it('revient au centre des que le pointeur quitte la fenetre', () => {
+    expect(followAim(null, 10, 1)).toEqual({ nx: 0, ny: 0, tour: 1, pointer: false })
+  })
+
+  it('laisse les yeux dans la tete sur une visee saturee', () => {
+    // la consequence visible de la butee, verifiee sur l'image et pas seulement
+    // sur les angles
+    const moteur = new BotEngine(100, 'idle', cercle(), EXPRESSION_BY_ID.get('neutre')!)
+    moteur.setLook(lookTarget(vise({ nx: -99, ny: -99 })), 0)
+    const image = moteur.sample(1)
+    expect(image.eyes).toHaveLength(2)
+    for (const oeil of image.eyes) expect(oeil.alpha).toBeGreaterThan(0.5)
   })
 })
 

@@ -145,6 +145,53 @@ export interface Aim {
 }
 
 /**
+ * Duree d'immobilite du pointeur avant que le regard ne revienne au centre.
+ *
+ * Trois secondes : assez pour ne pas relacher entre deux petits mouvements de
+ * souris, assez peu pour que le bot cesse de fixer un curseur oublie.
+ */
+export const AIM_IDLE = 3.2
+
+/**
+ * Rattrapage du retour au centre. Plus long que `BotEngine.LOOK_MORPH` : suivre
+ * un pointeur doit repondre vite, rentrer au repos doit se lire comme un
+ * relachement et non comme un rappel.
+ */
+export const AIM_RELAX = 0.8
+
+/**
+ * Derniere position connue du pointeur, en coordonnees deja normalisees.
+ * `movedAt` est l'horloge de scene au dernier VRAI mouvement, pas la date de la
+ * derniere lecture : c'est elle qui permet de mesurer l'immobilite.
+ */
+export interface PointerAim {
+  nx: number
+  ny: number
+  movedAt: number
+}
+
+/**
+ * Visee effective a l'instant `now` : le pointeur commande tant qu'il bouge,
+ * puis le regard revient au centre des qu'il quitte la fenetre ou reste
+ * immobile `AIM_IDLE` secondes.
+ *
+ * Le retour est une CIBLE, pas un relachement : les yeux reviennent au milieu du
+ * visage, et `pointer: false` rend la derive automatique au moteur. Un simple
+ * `setLook(null)` aurait ramene les yeux a la pose de l'expression, qui peut
+ * regarder ailleurs — le bot aurait paru detourner le regard au lieu de se
+ * poser.
+ */
+export function followAim(aim: PointerAim | null, now: number, tour: number): Aim {
+  const live = aim !== null && now - aim.movedAt < AIM_IDLE
+  return {
+    nx: live ? aim.nx : 0,
+    ny: live ? aim.ny : 0,
+    tour,
+    pointer: live
+  }
+}
+
+/**
  * Cible de regard.
  *
  * `tour` mene tout : il fait monter l'emprise sur la pose (`mix`) et fondre le
@@ -157,12 +204,24 @@ export interface Aim {
  * encore — et les yeux sautaient a chaque changement d'humeur.
  */
 export function lookTarget({ nx, ny, tour, pointer }: Aim): Look {
+  /*
+   * La butee est ICI, pas chez l'appelant. `nx` et `ny` viennent d'une position
+   * de pointeur divisee par une demi-fenetre : un ecran tres large, une boite
+   * nulle ou un evenement de synthese peuvent les faire depasser [-1, 1]. Or
+   * `YAW_MAX` et `PITCH_MAX` sont choisis pour que les deux yeux restent devant
+   * le limbe ; les depasser d'un cheveu suffit a faire disparaitre l'oeil
+   * exterieur derriere la sphere. La regle qui protege l'invariant doit donc
+   * voyager avec la regle qui produit les angles.
+   */
+  const ax = clamp(nx, -1, 1)
+  const ay = clamp(ny, -1, 1)
+  const t = clamp(tour)
   return {
-    yaw: -TURN + nx * YAW_MAX,
+    yaw: -TURN + ax * YAW_MAX,
     // tangage positif = regard vers le haut, alors que le y de l'ecran descend
-    pitch: PITCH - ny * PITCH_MAX,
-    mix: tour,
-    spin: SPIN * (1 - tour),
+    pitch: PITCH - ay * PITCH_MAX,
+    mix: t,
+    spin: SPIN * (1 - t),
     // Sans pointeur la tete reste tournee vers le panneau, mais on lui rend sa
     // derive : sinon le bot fixe un point mort, et arriver au clavier ou au
     // tactile donnait un avatar completement immobile.
