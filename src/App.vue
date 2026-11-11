@@ -58,7 +58,7 @@ import { COLOR_BY_ID, DEFAULT_COLOR, DEFAULT_SHAPE, SHAPE_BY_ID } from '@/bot/sk
 import { POSES, SEQUENCE, STATES, type StateId } from '@/bot/states'
 
 /**
- * L'URL pilote la vue : `#etat=orbit&stop` ouvre un etat precis sequence a
+ * L'URL pilote la vue : `#etat=chase&stop` ouvre un etat precis sequence a
  * l'arret, `#planche` affiche la planche. On relit a chaque `hashchange` pour
  * que les boutons precedent/suivant du navigateur fonctionnent vraiment.
  */
@@ -103,7 +103,7 @@ const gallery = ref(initial.gallery)
  * chose gene. Un `matches` lu au `setup` ignorait ce changement jusqu'au rechargement.
  *
  * Ce qu'il coupe est de la DECORATION : les transitions de boites et le tourbillon
- * d'entree des reglages, choisi et non releve sur la video. Ce qu'il ne coupe pas est du
+ * d'entree des reglages, choisi et non impose par le catalogue. Ce qu'il ne coupe pas est du
  * CONTENU : la respiration, la derive du regard et les clignements sont ce que le bot EST,
  * les retirer laisserait une image morte plutot qu'un mouvement apaise.
  */
@@ -132,7 +132,7 @@ const intro = ref(
 /* ------------------------------------------------------------------ cycles */
 
 /**
- * Le montage releve sur la video n'est qu'une amorce : au premier lancement il
+ * Le montage du catalogue n'est qu'une amorce : au premier lancement il
  * remplit la liste, ensuite les montages de l'utilisateur font foi — y compris
  * ses modifications de celui-la.
  */
@@ -355,7 +355,7 @@ const REST = [makeBlock('idle')]
 const ENTREE = [makeBlock('swirl'), makeBlock('idle')]
 /**
  * Sous « mouvement reduit », l'entree va droit au repos : le tourbillon est une transition
- * d'interface, choisie et non relevee, donc de la decoration au sens de ce reglage.
+ * d'interface, choisie, donc de la decoration au sens de ce reglage.
  */
 const ENTREE_CALME = [makeBlock('idle')]
 
@@ -478,8 +478,8 @@ const NOM = 'BLOUB'
  *
  * Deux raisons, et la seconde est mesuree :
  *
- * - une goutte ou un hexagone en sortie de morph ne se lisent pas comme une boule
- *   qui tourne, alors que la video montre une sphere ;
+ * - une goutte en sortie de morph ne se lit pas comme un chat
+ *   qui tourne, alors que le tour se joue sur une sphere ;
  * - surtout, les yeux sont recolles au contour REEL (`radiusAtAngle`) pour ne pas
  *   deborder de la silhouette. Sur un cercle ce rayon est constant et le tour est
  *   lisse ; sur une goutte, les yeux montent et descendent en suivant le profil —

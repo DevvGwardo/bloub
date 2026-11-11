@@ -4,8 +4,8 @@
 
 The paths in `SideRail.vue` and `Timeline.vue` are copied verbatim from Iconify
 packages (Solar, plus Remix for the palette). No dependency is installed, so
-`package.json` doesn't mention it, and the "everything is measured" rule does
-**not** apply here.
+`package.json` doesn't mention it, and the "cat geometry is authored here" rule
+does **not** apply to these third-party icons.
 
 To add or change one, take the `<symbol>` body from `@iconify-json/<package>`.
 Don't redraw by hand (tried, rejected) and don't "re-centre" their coordinates.

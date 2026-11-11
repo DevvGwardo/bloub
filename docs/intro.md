@@ -11,23 +11,23 @@ Four different entrances were written and compared side by side before one was
 kept. Any state other than `idle` brings **its own gaze pose**, hence an eye jump
 at the change. And the blink meant to hide that isn't enough: it lasts **0.2 s**
 where the entry fade lasts **0.3**: the eyes reopen part-way through and it reads
-as a teleport (15 px between two frames, measured). Both durations are measured off
-the video and neither gets extended. A wink was tried at length here, then dropped
+as a teleport (15 px between two frames). The forced blink and the entry fade are
+close enough that neither is extended: a wink was tried at length here, then dropped
 for exactly this.
 
 ## So the whole entrance lives in the gaze script
 
 Not in a chain of states. It's the only mechanism in the project whose duration
 **we choose** (`setLook(look, now, morph)`), and therefore the only one that allows
-a slow eye movement. A state fade lasts what the video measured.
+a slow eye movement. A state fade lasts the state's own `morph`.
 
 ## The ball is ROUND for the duration of the turn
 
 Whatever shape the user picked, and it morphs towards theirs as it reaches its
 place. Not out of taste: the eyes are stuck back onto the real outline
 (`radiusAtAngle`) so they don't spill out of the silhouette. On a circle that
-radius is constant, so the turn is smooth; on a teardrop they follow the profile
-and hop, **up to 25 px of vertical deviation** from the circle's trajectory, and a
+radius is constant, so the turn is smooth; on a capsule they follow the profile
+and hop, **up to about 28 px of vertical deviation** from the circle's trajectory, and a
 test measures it. This isn't fixable elsewhere: `radiusAtAngle` is doing exactly
 what it's there for.
 
@@ -65,8 +65,8 @@ settled.
 
 ## What a script cannot anticipate: roll
 
-`Look` deliberately doesn't drive it: the tilted head is the bot's signature. Each
-state has its own: the wink leans at +6.7° where rest leans at -13. Those degrees
+`Look` deliberately doesn't drive it: the tilted head is the cat's signature. Each
+state has its own: the wink leans one way, rest the other. Those degrees
 would jump at a state change whatever we did, which is the closing argument for an
 arrival with no state change in it.
 

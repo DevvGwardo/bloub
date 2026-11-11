@@ -23,8 +23,8 @@ const ascii = (s: string) => Array.from(s, (c) => c.charCodeAt(0))
  * animee. Une seule source de dessin, donc aucune derive possible — c'est la
  * meme regle que pour l'export fixe.
  *
- * Seuls les yeux bougent, et c'est mesure : au repos la silhouette ne se deplace
- * que de 1,17 unite sur un rayon de 100 en trois secondes, soit environ un pixel
+ * Seuls les yeux bougent, et c'est voulu : au repos la silhouette ne se deplace
+ * que de quelques millièmes de rayon en trois secondes, soit environ un pixel
  * et demi a la taille d'export. Le corps reste donc tel quel, ce qui rend le
  * fichier minuscule — tout le poids d'une animation du bot est dans son regard.
  *

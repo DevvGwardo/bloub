@@ -6,10 +6,10 @@ export const lerp = (a: number, b: number, t: number) => a + (b - a) * t
 export type Easing = (t: number) => number
 
 /**
- * Mesure sur la video : les transitions sont des ease-out exponentiels, sans
- * depassement du corps. Les seuls effets de ressort sont locaux (le pop de la
- * pastille de notification, l'ouverture des yeux) et sont ecrits directement
- * dans l'etat concerne.
+ * Courbes du projet : des ease-out exponentiels, sans depassement du corps.
+ * Les seuls effets de ressort sont locaux (le pop de la pastille de
+ * notification, l'ouverture des yeux) et sont ecrits directement dans l'etat
+ * concerne.
  */
 export const easings = {
   easeOutCubic: (t: number) => 1 - (1 - t) ** 3,

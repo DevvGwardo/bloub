@@ -11,7 +11,7 @@ import { t } from '@/i18n'
 defineProps<{ shape: string; color: string; expression: string }>()
 const emit = defineEmits<{ pick: [state: StateId] }>()
 
-/** Les animations dans l'ordre de la video. */
+/** Les animations dans l'ordre du catalogue. */
 const PALETTE = SEQUENCE.map((id) => STATE_BY_ID.get(id)!)
 
 /** Largeur de la palette, en pixels — elle sert aussi a la caler. */

@@ -1,10 +1,15 @@
-# bloub
+# bloub — an original cat mascot
 
-An SVG recreation of the x.ai bot avatar: **one filled black shape** that morphs
-between 14 states, **two white shapes** for the eyes that morph independently, on
-a plain background. No animation library.
+An animated **cat** in SVG: a wide rounded head with two short, soft ears and
+big low eyes, morphing through 14 poses. One filled shape plus two mask holes,
+no animation library.
 
-![The avatar going through idle, wink, orbit and burst](docs/demo.gif)
+The cat is original work: its head, ears, cheeks, eyes, expressions and poses are
+authored analytically in code (`src/bot/cat.ts`), not traced from any video or
+character. The project is built on the radial-profile morphing engine of
+**[bloub](https://github.com/jeremy-prt/bloub) by Jérémy Perret**, MIT licensed.
+
+![The cat going through idle, wink, chase and puff](docs/demo.gif)
 
 ## Running it
 
@@ -25,44 +30,41 @@ only gate, so run `pnpm build` before you call something done.
 
 ## What's in it
 
-The rail on the left switches between three views. **Customise** offers 8 body
-shapes, 12 colours and 16 rest expressions, kept between visits. **Animations** is
-a small editor: arrange states into a timeline, set how long each is held, save the
-result. **Settings** holds the language (French, English or Chinese) and the
-credits.
+The rail on the left switches between three views. **Customise** offers the cat
+plus 8 alternative body shapes, 12 colours and 16 rest expressions, kept between
+visits. **Animations** is a small editor: arrange states into a timeline, set how
+long each is held, save the result. **Settings** holds the language (French,
+English or Chinese) and the credits.
 
-Anything on screen can be exported: the avatar as SVG, PNG or an animated GIF, and
-a whole timeline as GIF or MP4. The still formats need no library at all, and the
+Anything on screen can be exported: the cat as SVG, PNG or an animated GIF, and a
+whole timeline as GIF or MP4. The still formats need no library at all, and the
 video encoder is only fetched the first time you ask for one.
 
 Two URLs are worth knowing:
 
-- `#planche`: the 14 states side by side, frozen. Quick visual check.
-- `#etat=orbit&stop`: opens one state directly, playback paused.
+- `#planche`: the 14 poses side by side, frozen. Quick visual check.
+- `#etat=chase&stop`: opens one state directly, playback paused.
 
 ![The 14 states, frozen side by side](docs/states.png)
 
-## Why the numbers look arbitrary
+## The cat
 
-They're measured, not chosen. The reference video was cut at 10 fps and each
-state measured off the frames: silhouettes by sub-pixel ray casting, eyes by
-capsule fitting, colours and stroke widths by direct sampling.
+Everything comes from one polar profile sampled at 64 angles:
 
-So the constants in the code are **measurements**, and rounding them to friendlier
-values breaks the resemblance, which is the only thing this project is trying to
-get right. A few are counter-intuitive enough to be worth knowing before you
-correct anything:
+- a **wide rounded head** (about 1.19× wider than tall, ears included),
+- **soft cheeks** bulging a little at the lower sides,
+- **two short rounded ears** on top, leaning slightly outward, built as smooth
+  raised-cosine bumps so the outline stays star-shaped and kink-free,
+- a flat-ish soft crown between the ears,
+- **big, low, slightly tall eyes** kept as holes in the mask.
 
-| What you'd assume | What the video shows |
-|---|---|
-| The eyes lean `//` | They lean `\\`, around 26° off vertical |
-| The body is a squircle | It's a perfect circle, radial deviation under 0.7% |
-| Transitions are springs | Exponential ease-outs; the body never overshoots |
-| The comet crosses the screen | The dot stays put, the trail orbits it |
-| The avatar floats at rest | It doesn't. The life is gaze drift and blinking |
+Four profiles (`cat`, `squish`, `perk`, `tilt`) cover the resting cat, the loaf,
+the stretch and the head tilt. The catalogue then tells a small story: idle,
+thinking, wink, wide eyes, alert, notification, startled, doze, cat loaf,
+stretch, swat, chase, puff up, pounce.
 
-[docs/measurements.md](docs/measurements.md) has the rest, including how to
-regenerate the extracted profiles.
+[docs/measurements.md](docs/measurements.md) documents the analytic construction
+and every parameter.
 
 ## How it's put together
 
@@ -74,7 +76,7 @@ the DOM-less test suite possible.
 | | |
 |---|---|
 | [docs/architecture.md](docs/architecture.md) | The engine, radial-profile morphing, eyes as mask holes |
-| [docs/measurements.md](docs/measurements.md) | What was measured, and regenerating `profiles.ts` |
+| [docs/measurements.md](docs/measurements.md) | The cat's geometry and parameters |
 | [docs/intro.md](docs/intro.md) | The arrival sequence, and why it only plays one state |
 | [docs/interface.md](docs/interface.md) | Layout, the three-column scene, CSS traps |
 | [docs/export.md](docs/export.md) | Exporting to SVG, PNG, GIF and MP4 |
@@ -84,7 +86,7 @@ the DOM-less test suite possible.
 
 ```vue
 <BloubBot v-model:block="block" v-model:state="state" v-model:playing="playing" />
-<BloubBot state="orbit" :size="120" :frozen-at="1.2" />
+<BloubBot state="chase" :size="120" :frozen-at="1.2" />
 ```
 
 `block` is the playback cursor: a montage can play the same state twice, so the
@@ -101,11 +103,14 @@ Props: `size`, `shape`, `color`, `expression`, `paper`, `frozenAt`, `cycle`,
 [CHANGELOG.md](CHANGELOG.md), one entry per release — which is how you tell whether the
 copy you have carries a given fix.
 
-## License
+## License and credit
 
 MIT. See [LICENSE](LICENSE).
 
-Not affiliated with, endorsed by or connected to x.ai. It recreates the visual
-behaviour of their bot avatar as an exercise; "Grok" and "x.ai" belong to their
-owners. The MIT licence covers the code in this repository, not the design it
-imitates.
+**Based on bloub by Jérémy Perret (jeremy-prt), MIT licensed.** The fork keeps
+bloub's engine, state machine, mask-hole eyes, gaze plumbing, export, UI, i18n
+and test infrastructure. All cat mascot geometry, eye design, poses and visual
+changes are original work by DevvGwardo and contributors; see [NOTICE](NOTICE).
+
+No artwork, code, data or measurements from xAI or its Grok mascot are used. The
+MIT licence covers the code in this repository, not any third-party character.

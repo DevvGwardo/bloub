@@ -12,15 +12,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>bloub, avatar SVG animé</title>
+    <title>bloub, chat SVG animé</title>
     <!--
-      « bloub » est le nom du produit ; « l'avatar du bot de x.ai » est la
-      matiere reproduite. Les deux doivent rester distincts : le projet n'est
-      pas edite par x.ai, et il ne reproduit pas autre chose que son avatar.
+      « bloub » est le nom du produit ; le chat est une creation originale de ce
+      fork. Le projet est construit sur le moteur de bloub de jeremy-prt (MIT).
     -->
     <meta
       name="description"
-      content="bloub recrée en SVG animé l'avatar du bot de x.ai : une forme noire qui morphe entre 14 états, relevés au pixel sur la vidéo. Sans librairie d'animation."
+      content="bloub, mascotte chat en SVG animé : une tête ronde, deux oreilles courtes et de grands yeux qui passent par 14 poses. Morphing radial, sans librairie d'animation."
     />
 
     <!--
@@ -31,10 +30,10 @@
 
     <!-- Open Graph : attribut `property`, alors que les balises X prennent `name` -->
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="bloub, avatar SVG animé" />
+    <meta property="og:title" content="bloub, chat SVG animé" />
     <meta
       property="og:description"
-      content="D'après l'avatar du bot de x.ai : une forme noire qui morphe entre 14 états, relevés au pixel sur la vidéo de référence."
+      content="Une mascotte chat originale en SVG animé : tête large, oreilles courtes, grands yeux, 14 poses et un éditeur de montage."
     />
     <meta property="og:site_name" content="bloub" />
     <meta property="og:locale" content="fr_FR" />
@@ -61,7 +60,7 @@
     <meta property="og:image:height" content="630" />
     <meta
       property="og:image:alt"
-      content="L'avatar noir du bot et le logotype BLOUB, sur fond clair"
+      content="La tête du chat et le logotype BLOUB, sur fond crème"
     />
 
     <!--
@@ -75,19 +74,19 @@
       Les trois tailles sont declarees : avec `sizes="32x32"` seul, un
       navigateur qui cherche une icone de 48 reechantillonne le 32 au lieu
       d'ouvrir l'image de 48 qui est dans le fichier. Le `.ico` ignore
-      `prefers-color-scheme`, il porte la seule variante claire (corps #0a0a0c,
+      `prefers-color-scheme`, il porte la seule variante claire (corps #232136,
       yeux troues), d'ou le SVG juste apres, qui lui s'inverse.
     -->
     <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <!-- iOS aplatit la transparence en noir : celui-la est opaque, fond #f9f9f9 -->
+    <!-- iOS aplatit la transparence en noir : celui-la est opaque, fond #f7f4ef -->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
 
     <!-- pas de site.webmanifest : il ne sert qu'a l'installation PWA, et
          couterait trois icones de plus pour aucun gain de referencement -->
 
-    <meta name="theme-color" content="#f9f9f9" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0a0a0c" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f7f4ef" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14121c" media="(prefers-color-scheme: dark)" />
   </head>
   <body>
     <div id="app"></div>

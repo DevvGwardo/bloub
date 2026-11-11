@@ -187,7 +187,7 @@ export async function cycleVersMp4(
  * apres une passe complete doit redonner exactement l'image 0. Ca n'a pas toujours ete le
  * cas — le moteur garde l'etat precedent pour ses fondus, si bien que le premier etat se
  * melangeait avec le DERNIER et que le GIF par defaut s'ouvrait sur une boule sans yeux,
- * la comete ayant un `eyeAlpha` nul. La palette, elle, avait ete comptee sur des images
+ * le bond ayant un `eyeAlpha` nul. La palette, elle, avait ete comptee sur des images
  * qui n'etaient pas celles encodees. C'est `rendAt` qui rembobine desormais, et
  * `capture.test.ts` le verrouille — sans quoi ce module devrait ouvrir un lecteur par
  * passe pour s'en sortir.
@@ -341,7 +341,7 @@ export async function ouvreCycle(
         /*
          * Le moteur se construit sur l'etat qu'on lui donne, et l'image 0 doit
          * etre le PREMIER etat du montage. Sans cette prop le modele prenait son
-         * defaut `idle` : un montage commencant par l'orbite s'ouvrait sur une
+         * defaut `idle` : un montage commencant par la poursuite s'ouvrait sur une
          * boule au repos qui morphait vers le triangle pendant 0,6 s. C'est la
          * meme precaution qu'a l'ecran, ou `state` est amorce sur le bloc courant
          * « pour ne pas entrer en morphant depuis un etat qui n'a jamais ete

@@ -20,11 +20,11 @@ import {
 import { SEQUENCE, STATES, STATE_BY_ID } from './states'
 
 describe('cycle par defaut', () => {
-  it('reprend la sequence relevee sur la video, dans l ordre', () => {
+  it('reprend la sequence du catalogue, dans l ordre', () => {
     expect(defaultCycle().blocks.map((b) => b.state)).toEqual(SEQUENCE)
   })
 
-  it('tient chaque etat sa duree mesuree', () => {
+  it('tient chaque etat sa duree declaree', () => {
     for (const block of defaultCycle().blocks) {
       expect(block.duration).toBe(STATE_BY_ID.get(block.state)!.duration)
     }
@@ -70,7 +70,7 @@ describe('durees', () => {
     expect(minDurationOf('idle')).toBe(MIN_BLOCK)
   })
 
-  it('n autorise aucun etat a descendre sous sa mesure', () => {
+  it('n autorise aucun etat a descendre sous sa duree propre', () => {
     for (const state of SEQUENCE) {
       expect(clampDuration(state, 0)).toBeGreaterThanOrEqual(minDurationOf(state))
     }
@@ -175,7 +175,7 @@ describe('relecture du stockage', () => {
   /*
    * Le plancher est DERIVE du plus long `morph`, il n'est plus ecrit a la main. Ce test
    * garde le lien visible : il valait 0,6 en dur, ce qui ne marchait que parce que 0,6
-   * etait justement le morph d'`orbit`. Un etat qui morphe plus lentement le suit.
+   * etait justement le morph de `chase`. Un etat qui morphe plus lentement le suit.
    */
   it('le plancher de bloc couvre le plus long fondu du catalogue', () => {
     const plusLong = Math.max(...STATES.map((s) => s.morph))

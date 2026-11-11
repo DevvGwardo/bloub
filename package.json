@@ -3,9 +3,9 @@
   "private": true,
   "version": "0.1.1",
   "type": "module",
-  "description": "SVG recreation of the x.ai bot avatar. One shape morphing through 14 states, measured off the reference video frame by frame.",
+  "description": "An original animated cat mascot in SVG, built on bloub's radial-profile morphing engine.",
   "license": "MIT",
-  "author": "Jérémy Perret",
+  "author": "DevvGwardo (cat fork), based on bloub by Jérémy Perret",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jeremy-prt/bloub.git"
@@ -14,6 +14,8 @@
     "svg",
     "animation",
     "avatar",
+    "cat",
+    "mascot",
     "vue",
     "morphing"
   ],

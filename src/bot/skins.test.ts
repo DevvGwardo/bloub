@@ -6,7 +6,7 @@ import { DEFAULT_SHAPE, SHAPES, SHAPE_BY_ID } from './skins'
 import { STATES, type StateId } from './states'
 
 /**
- * Les formes du personnalisateur, mesurees contre le corps qu'elles remplacent.
+ * Les formes du personnalisateur, confrontees au corps qu'elles remplacent.
  *
  * Ce fichier verrouille deux choses, et la seconde a coute bien plus que la premiere :
  *
@@ -121,8 +121,8 @@ function debordement(state: StateId, radii: number[], expr: (typeof EXPRESSIONS)
 
 /** Les etats dont le corps est remplacable par une forme du personnalisateur. */
 const CORPS_DE_BASE = STATES.filter((s) => s.baseBody).map((s) => s.id)
-/** Les autres : leur silhouette EST l'animation, relevee sur la video. */
-const SILHOUETTE_MESUREE = STATES.filter((s) => !s.baseBody).map((s) => s.id)
+/** Les autres : leur silhouette EST l'animation, une pose du catalogue. */
+const POSES_PROPRES = STATES.filter((s) => !s.baseBody).map((s) => s.id)
 
 describe('formes du personnalisateur', () => {
   // 680 combinaisons x 60 instants x deux contours : le test le plus lourd du depot, et le
@@ -167,14 +167,14 @@ describe('formes du personnalisateur', () => {
   })
 
   /**
-   * Les silhouettes relevees sur la video ne sont pas remplacables, donc la forme choisie
-   * ne doit pas les atteindre — ni leur corps, ni leurs yeux. `orbit` est le cas qui
+   * Les poses du catalogue ne sont pas remplacables, donc la forme choisie
+   * ne doit pas les atteindre — ni leur corps, ni leurs yeux. `chase` est le cas qui
    * compte : la marge de son oeil est plus serree que celle du cercle et elle est pourtant
-   * juste, puisque relevee ainsi. Une regle de marge appliquee sans distinction la
+   * juste, puisque dessinee ainsi. Une regle de marge appliquee sans distinction la
    * deplacerait.
    */
-  it("la forme choisie ne touche pas aux etats a silhouette mesuree", () => {
-    for (const state of SILHOUETTE_MESUREE) {
+  it("la forme choisie ne touche pas aux etats a pose propre", () => {
+    for (const state of POSES_PROPRES) {
       const nu = new BotEngine(R, state, null, null).sample(1)
       for (const forme of SHAPES) {
         const habille = new BotEngine(R, state, forme.radii, null).sample(1)
@@ -212,7 +212,7 @@ describe('formes du personnalisateur', () => {
    * voulu. Trembler, c'est aller et REVENIR. On compte donc les changements de sens image
    * par image, et on les compare au cercle, que la correction ne touche pas.
    *
-   * La mesure discrimine tres bien : 0 a 1 aller-retour sur le moteur d'origine, 4 a 14
+   * Le compte discrimine tres bien : 0 a 1 aller-retour sur le moteur d'origine, 4 a 14
    * avec des reculs jusqu'a 26 unites sur les versions qui tremblaient.
    */
   it('la correction ne fait pas osciller les yeux', () => {

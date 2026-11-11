@@ -1,15 +1,14 @@
 @import 'tailwindcss';
 
 :root {
-  /* Fond releve au pixel sur la video de reference. */
-  --paper: #f9f9f9;
+  /* Fond chaud, choisi pour le chat : un papier creme tres clair. */
+  --paper: #f7f4ef;
   /*
-   * Couleur principale de l'INTERFACE : un bleu nuit choisi, pas releve. Le
-   * noir de la video, lui, n'a pas bouge — c'est celui du bot, dans skins.ts
-   * (`encre`, #0a0a0c). Les deux ne doivent pas etre confondus : changer
-   * celle-ci retouche le decor, changer l'autre casse la ressemblance.
+   * Couleur principale de l'INTERFACE : un bleu nuit choisi. Le pelage du chat
+   * est dans `skins.ts` (`encre`, #232136). Les deux sont independants : changer
+   * celle-ci retouche le decor, changer l'autre retouche la mascotte.
    */
-  --ink: #17203a;
+  --ink: #1c2438;
   --line: #e3e5ea;
   --muted: #6e7382;
   /* Rouge d'interface pour les actions destructrices — choisi, comme --ink. */

@@ -483,8 +483,8 @@ describe('reset', () => {
  * changement.
  *
  * Mesure : le deplacement d'un oeil sur les deux images qui suivent un changement. Un
- * changement ESPACE en produit 10 a 14 px, et c'est voulu — l'`easeOutQuint` releve sur la
- * video demarre raide. Ce qui ne l'etait pas, c'est les 26 a 43 px d'un changement en plein
+ * changement ESPACE en produit 10 a 14 px, et c'est voulu - l'`easeOutQuint` demarre raide.
+ * Ce qui ne l'etait pas, c'est les 26 a 43 px d'un changement en plein
  * fondu.
  */
 describe('changement d etat pendant un fondu', () => {
@@ -545,7 +545,7 @@ describe('changement d etat pendant un fondu', () => {
   /**
    * Et la lecture ESPACEE ne change pas : les blocs d'un montage durent au moins le plus
    * long fondu, donc rien n'y est jamais fige. Verifie sur la sequence complete, image par
-   * image — c'est ce qui protege les animations relevees.
+   * image — c'est ce qui protege les animations du catalogue.
    */
   it('ne change rien a une lecture espacee', () => {
     const suite: Array<[StateId, number]> = [

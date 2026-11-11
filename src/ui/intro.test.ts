@@ -209,11 +209,11 @@ describe('fluidite de l arrivee', () => {
     }
 
     const rond = trajectoire('cercle')
-    const goutte = trajectoire('capsule')
+    const capsule = trajectoire('capsule')
     let ecart = 0
     for (let i = 0; i < rond.length; i++) {
-      if (Number.isNaN(rond[i]!) || Number.isNaN(goutte[i]!)) continue
-      ecart = Math.max(ecart, Math.abs(goutte[i]! - rond[i]!))
+      if (Number.isNaN(rond[i]!) || Number.isNaN(capsule[i]!)) continue
+      ecart = Math.max(ecart, Math.abs(capsule[i]! - rond[i]!))
     }
     // sur une boule de 100 de rayon : des dizaines de px, pas un ou deux
     expect(ecart, `${ecart.toFixed(1)} px d ecart vertical avec le cercle`).toBeGreaterThan(15)
